@@ -72,6 +72,8 @@ public class Search {
 		for (int i=0; i<20; i++) {
 			tempe[i] = new Edge3();
 		}
+
+		init();
 	}
 
 	public synchronized static void init() {
@@ -151,8 +153,122 @@ public class Search {
 
 	int totlen = 0;
 
+	public Byte[] byteSolve(FullCube cube){
+		c = cube;
+		
+		solution = "";
+		int ud = new Center1(c.getCenter(), 0).getsym();
+		int fb = new Center1(c.getCenter(), 1).getsym();
+		int rl = new Center1(c.getCenter(), 2).getsym();
+		int udprun = csprun[ud >> 6];
+		int fbprun = csprun[fb >> 6];
+		int rlprun = csprun[rl >> 6];
+
+		p1SolsCnt = 0;
+		arr2idx = 0;
+		p1sols.clear();
+
+		for (length1=Math.min(Math.min(udprun, fbprun), rlprun); length1<100; length1++) {
+			if (rlprun <= length1 && search1(rl>>>6, rl&0x3f, length1, -1, 0) 
+					|| udprun <= length1 && search1(ud>>>6, ud&0x3f, length1, -1, 0)
+					|| fbprun <= length1 && search1(fb>>>6, fb&0x3f, length1, -1, 0)) {
+				break;
+			}
+		}
+
+		FullCube[] p1SolsArr = p1sols.toArray(new FullCube[0]);
+		Arrays.sort(p1SolsArr, 0, p1SolsArr.length);
+
+		int MAX_LENGTH2 = 9;
+		int length12;
+		do {
+			OUT:
+			for (length12=p1SolsArr[0].value; length12<100; length12++) {
+				for (int i=0; i<p1SolsArr.length; i++) {
+					if (p1SolsArr[i].value > length12) {
+						break;
+					}
+					if (length12 - p1SolsArr[i].length1 > MAX_LENGTH2) {
+						continue;
+					}
+					c1.copy(p1SolsArr[i]);
+					ct2.set(c1.getCenter(), c1.getEdge().getParity());
+					int s2ct = ct2.getct();
+					int s2rl = ct2.getrl();
+					length1 = p1SolsArr[i].length1;
+					length2 = length12 - p1SolsArr[i].length1;
+
+					if (search2(s2ct, s2rl, length2, 28, 0)) {
+						break OUT;
+					}
+				}
+			}
+			MAX_LENGTH2++;
+		} while (length12 == 100);
+		Arrays.sort(arr2, 0, arr2idx);
+		int length123, index = 0;
+		int solcnt = 0;
+
+		int MAX_LENGTH3 = 13;
+		do {
+			OUT2:
+			for (length123=arr2[0].value; length123<100; length123++) {
+				for (int i=0; i<Math.min(arr2idx, PHASE3_ATTEMPTS); i++) {
+					if (arr2[i].value > length123) {
+						break;
+					}
+					if (length123 - arr2[i].length1 - arr2[i].length2 > MAX_LENGTH3) {
+						continue;
+					}
+					int eparity = e12.set(arr2[i].getEdge());
+					ct3.set(arr2[i].getCenter(), eparity ^ arr2[i].getCorner().getParity());
+					int ct = ct3.getct();
+					int edge = e12.get(10);
+					int prun = Edge3.getprun(e12.getsym());
+					int lm = 20;
+
+					if (prun <= length123 - arr2[i].length1 - arr2[i].length2 
+							&& search3(edge, ct, prun, length123 - arr2[i].length1 - arr2[i].length2, lm, 0)) {
+						solcnt++;
+	//					if (solcnt == 5) {
+							index = i;
+							break OUT2;
+	//					}
+					}
+				}
+			}
+			MAX_LENGTH3++;
+		} while (length123 == 100);
+
+		FullCube solcube = new FullCube(arr2[index]);
+		length1 = solcube.length1;
+		length2 = solcube.length2;
+		int length = length123 - length1 - length2;
+
+		for (int i=0; i<length; i++) {
+			solcube.move(move3std[move3[i]]);
+		}
+
+		String facelet = solcube.to333Facelet();
+		String sol = search333.solution(facelet, 21, 1000000, 500, 0);
+		int len333 = search333.length();
+		if (sol.startsWith("Error")) {
+			System.out.println(sol);
+			System.out.println(solcube);
+			System.out.println(facelet);
+			throw new RuntimeException();
+		}
+		int[] sol333 = tomove(sol);
+		for (int i=0; i<sol333.length; i++) {
+			solcube.move(sol333[i]);
+		}
+
+		totlen = length1 + length2 + length + len333;
+
+		return solcube.getMoveBytes(inverse_solution);
+	}
+
 	void doSearch() {
-		init();
 		solution = "";
 		int ud = new Center1(c.getCenter(), 0).getsym();
 		int fb = new Center1(c.getCenter(), 1).getsym();
@@ -445,5 +561,9 @@ public class Search {
 			}
 		}
 		return false;
+	}
+
+	public String getSolution(){
+		return solution;
 	}
 }

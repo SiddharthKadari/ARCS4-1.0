@@ -199,7 +199,11 @@ class Moves {
 	public static final int bx3 = 35;
 	public static final int eom = 36;//End Of Moves
 
-	
+	/*
+	 * char 1: Side to be turned ('U', 'R', 'F', 'D', 'L', or 'B')
+	 * char 2/3: w indicates the 2 sides on that side are being turned (ex: U2 means the upper half of the cube is being rotated 180°)
+	 * char 2/3: ' ', '\'', and '2' mark CW, CCW, and 180° turns respectively
+	 */
 	public static final String[] move2str = {"U  ", "U2 ", "U' ", "R  ", "R2 ", "R' ", "F  ", "F2 ", "F' ", 
 											 "D  ", "D2 ", "D' ", "L  ", "L2 ", "L' ", "B  ", "B2 ", "B' ", 
 											 "Uw ", "Uw2", "Uw'", "Rw ", "Rw2", "Rw'", "Fw ", "Fw2", "Fw'", 
@@ -209,6 +213,38 @@ class Moves {
 											 "D' ", "D2 ", "D  ", "L' ", "L2 ", "L  ", "B' ", "B2 ", "B  ", 
 											 "Uw'", "Uw2", "Uw ", "Rw'", "Rw2", "Rw ", "Fw'", "Fw2", "Fw ", 
 											 "Dw'", "Dw2", "Dw ", "Lw'", "Lw2", "Lw ", "Bw'", "Bw2", "Bw "};
+
+
+	/*
+	 * MOVE BIT ABSTRACTION:
+	 * 
+	 * move will be encoded in the following bit format:
+	 * m = m7m6m5m4m3m2m1m0
+	 * 
+	 * turn magnitude = m5
+	 * 		Quarter = 0
+	 * 		Half 	= 1
+	 * turn direction = m4
+	 * 		CW 	= 0
+	 * 		CCW = 1
+	 * depth = m3
+	 * 		Face move (' ') 	= 0
+	 * 		Block move ('w') 	= 1
+	 * face = m2m1m0
+	 * 		m1m0 	= axis
+	 * 		m2 		= primary/secondary face
+	 * 			U = 0b000 = primary 	axis 0
+	 * 			R = 0b001 = primary 	axis 1
+	 * 			F = 0b010 = primary 	axis 2
+	 * 			D = 0b100 = secondary 	axis 0
+	 * 			L = 0b101 = secondary 	axis 1
+	 * 			B = 0b110 = secondary 	axis 2
+	 */
+	public static final Byte[] move2byte = { 0b000000, 0b100000, 0b010000, 0b000001, 0b100001, 0b010001, 0b000010, 0b100010, 0b010010, 
+											 0b000100, 0b100100, 0b010100, 0b000101, 0b100101, 0b010101, 0b000110, 0b100110, 0b010110, 
+											 0b001000, 0b101000, 0b011000, 0b001001, 0b101001, 0b011001, 0b001010, 0b101010, 0b011010, 
+											 0b001100, 0b101100, 0b011100, 0b001101, 0b101101, 0b011101, 0b001110, 0b101110, 0b011110};
+	
 	
 	static int[] move2std = {Ux1, Ux2, Ux3, Rx1, Rx2, Rx3, Fx1, Fx2, Fx3, 
 							 Dx1, Dx2, Dx3, Lx1, Lx2, Lx3, Bx1, Bx2, Bx3, 

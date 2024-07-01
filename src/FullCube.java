@@ -282,6 +282,46 @@ public class FullCube implements Comparable<FullCube> {
 		}
 		return sb.toString();
 	}
+
+	public Byte[] getMoveBytes(boolean inverse) {
+		int[] fixedMoves = new int[moveLength - (add1 ? 2 : 0)];
+		int idx = 0;
+		for (int i=0; i<length1; i++) {
+			fixedMoves[idx++] = moveBuffer[i];
+		}
+		int sym = this.sym;
+		for (int i=length1 + (add1 ? 2 : 0); i<moveLength; i++) {
+			if (symmove[sym][moveBuffer[i]] >= dx1) {
+				fixedMoves[idx++] = symmove[sym][moveBuffer[i]] - 9;
+				int rot = move2rot[symmove[sym][moveBuffer[i]] - dx1];
+				sym = symmult[sym][rot];
+			} else {
+				fixedMoves[idx++] = symmove[sym][moveBuffer[i]];
+			}
+		}
+		int finishSym = symmult[syminv[sym]][Center1.getSolvedSym(getCenter())];
+		
+		ArrayList<Byte> byteMoves = new ArrayList<>();
+		sym = finishSym;
+		if (inverse) {
+			for (int i=idx-1; i>=0; i--) {
+				int move = fixedMoves[i];
+				move = move / 3 * 3 + (2 - move % 3);
+				if (symmove[sym][move] >= dx1) {
+					byteMoves.add(move2byte[symmove[sym][move] - 9]);
+					int rot = move2rot[symmove[sym][move] - dx1];
+					sym = symmult[sym][rot];
+				} else {
+					byteMoves.add(move2byte[symmove[sym][move]]);
+				}
+			}
+		} else {
+			for (int i=0; i<idx; i++) {
+				byteMoves.add(move2byte[fixedMoves[i]]);
+			}
+		}
+		return byteMoves.toArray(new Byte[0]);
+	}
 	
 	private static int[] move2rot = {35, 1, 34, 2, 4, 6, 22, 5, 19};
 	 
