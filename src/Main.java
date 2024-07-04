@@ -45,18 +45,18 @@ public class Main {
         Search search = new Search();
 		search.with_rotation = false;
 
-		sw.start();
+		// sw.start();
 
-		search.calc(cube);
+		// search.calc(cube);
 
-		System.out.println(sw.millis());
-		System.out.println(search.getSolution());
+		// System.out.println(sw.millis());
+		// System.out.println(search.getSolution());
 
-		sw.reset();
+		// sw.reset();
 		sw.start();
 
 		Byte[] sol = search.byteSolve(cube);
-		
+
 		sw.stop();
 
 		for(int i = 0; i < sol.length; i++){
@@ -65,6 +65,8 @@ public class Main {
 
 		System.out.println();
 		System.out.println(sw.millis());
+
+		System.out.println("\n" + sol.length);
 
 	}
 }
