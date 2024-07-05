@@ -5,30 +5,31 @@ void setup() {
   // initialize digital pin LED_BUILTIN as an output.
   pinMode(LED_BUILTIN, OUTPUT);
   Serial.begin(115200);
-  delay(800);
+  delay(500);
   serialSend("Arduino Start Message");
-  delay(200);
+  delay(500);
+}
+
+void serialEvent(){
+
+  uint8_t numBytes = Serial.read();
+
+  uint8_t data[numBytes];
+
+  Serial.readBytes(data, numBytes);
+
+  //DO STUFF WITH data
 }
 
 void loop(){
-  if(Serial.available()){
-    int d = Serial.read();
-    serialSend("0");
-    blink(d-48);
-  }
-}
 
-void blink(int b) {
-  for(int i = 0; i < b; i++){
-    digitalWrite(LED_BUILTIN, HIGH);  // turn the LED on (HIGH is the voltage level)
-    delay(1000);                      // wait for a second
-    digitalWrite(LED_BUILTIN, LOW);   // turn the LED off by making the voltage LOW
-    delay(1000);                      // wait for a second
-  }
-  serialSend("Blink Done");
 }
 
 void serialSend(String str){
   Serial.write(str.length());
   Serial.print(str);
+}
+void serialSend(uint8_t *data, int length){
+  Serial.write((uint8_t)length);
+  Serial.write(data, length);
 }

@@ -59,6 +59,16 @@ public abstract class SerialDevice {
 
 	public void send(byte b){
 		try {
+			port.getOutputStream().write(1);
+			port.getOutputStream().write(b);
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+	}
+
+	public void send(byte[] b){
+		try {
+			port.getOutputStream().write(b.length);
 			port.getOutputStream().write(b);
 		} catch (IOException e) {
 			e.printStackTrace();

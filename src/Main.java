@@ -16,7 +16,6 @@ public class Main {
 		SerialDevice arduino;
 
 		//Initializing .data files
-		
 		initializeSolveData();
 
 		printStatusUpdate("SOLVER INITIALIZED");
@@ -40,7 +39,7 @@ public class Main {
 			delay(100);
 
 			//5 second timeout
-			if(i == 5*10){
+			if(i == 10*10){
 				throw new TimeoutException("Arduino failed to connect, try again");
 			}
 		}
@@ -49,9 +48,9 @@ public class Main {
 		delay(1000);
 
 		stopWatch.start();
-		arduino.send((byte)'2');
+		arduino.send(new byte[]{101, 101, 101, 101});
 
-		for(int i = 0; i < 4*10; i++){
+		for(int i = 0; i < 6*10; i++){
 			delay(100);
 			System.out.println(i + " " + stopWatch.millis());
 		}
@@ -114,6 +113,7 @@ public class Main {
 	}
 
 	private static void printStatusUpdate(String str){
+		delay(100);
 		System.out.println("\n======================== " + str + " ========================\n");
 		delay(100);
 	}
