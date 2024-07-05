@@ -10,70 +10,84 @@ public class Main {
 
 	public static final Stopwatch stopWatch = new Stopwatch();
 
+	private static final boolean USING_SOLVER = true;
+	private static final boolean TESTING_SOLVER = true && USING_SOLVER;
+	private static final boolean USING_ARDUINO = false;
+	private static final boolean TESTING_ARDUINO = true && USING_ARDUINO;
+
 	public static void main(String[] args) throws TimeoutException {
 		printStatusUpdate("PROGRAM START");
 
 		SerialDevice arduino;
 
-		//Initializing .data files
-		initializeSolveData();
+		if(USING_SOLVER){
+			//Initializing .data files
+			initializeSolveData();
 
-		printStatusUpdate("SOLVER INITIALIZED");
-
-		System.out.println("Connecting to Arduino...");
-
-		try {
-			//use {cd /dev} in terminal to get list of all ports
-			arduino = new SerialDevice("tty.usbmodem1101", 115200){
-				@Override
-				public void messageReceived(byte[] msg){
-					Main.stopWatch.stop();
-				}
-			};
-		} catch (IOException e) {
-			e.printStackTrace();
-			return;
+			printStatusUpdate("SOLVER INITIALIZED");
 		}
 
-		for(int i = 0; arduino.numMessagesReceived() == 0; i++){
-			delay(100);
+		if(USING_ARDUINO){
+			System.out.println("Connecting to Arduino...");
 
-			//5 second timeout
-			if(i == 10*10){
-				throw new TimeoutException("Arduino failed to connect, try again");
+			try {
+				//use {cd /dev} in terminal to get list of all ports
+				arduino = new SerialDevice("tty.usbmodem1101", 115200){
+					@Override
+					public void messageReceived(byte[] msg){
+						Main.stopWatch.stop();
+					}
+				};
+			} catch (IOException e) {
+				e.printStackTrace();
+				return;
 			}
+
+			for(int i = 0; arduino.numMessagesReceived() == 0; i++){
+				delay(100);
+	
+				//5 second timeout
+				if(i == 10*10){
+					throw new TimeoutException("Arduino failed to connect, try again");
+				}
+			}
+
+			printStatusUpdate("ARDUINO CONNECTED");
+			delay(1000);
 		}
 
-		printStatusUpdate("ARDUINO CONNECTED");
-		delay(1000);
+		if(TESTING_SOLVER){
+			FullCube cube = new FullCube(new Random(System.nanoTime()));
 
-		stopWatch.start();
-		arduino.send(new byte[]{101, 101, 101, 101});
+			Search search = new Search();
+			search.with_rotation = false;
+			stopWatch.start();
 
-		for(int i = 0; i < 6*10; i++){
-			delay(100);
-			System.out.println(i + " " + stopWatch.millis());
+			Byte[] sol = search.byteSolve(cube);
+
+			stopWatch.stop();
+
+			for(int i = 0; i < sol.length; i++){
+				System.out.print(sol[i].toString() + " ");
+			}
+			System.out.println("\n" + stopWatch.millis());
+
+			System.out.println(sol.length);
 		}
 
-		arduino.printAllMessagesDebug();
-
-		// FullCube cube = new FullCube(new Random(System.nanoTime()));
-
-        // Search search = new Search();
-		// search.with_rotation = false;
-		// sw.start();
-
-		// Byte[] sol = search.byteSolve(cube);
-
-		// sw.stop();
-
-		// for(int i = 0; i < sol.length; i++){
-		// 	System.out.print(sol[i].toString() + " ");
-		// }
-		// System.out.println("\n" + sw.millis());
-
-		// System.out.println(sol.length);
-
+		if(TESTING_ARDUINO){
+			stopWatch.start();
+			arduino.send(new byte[]{101, 101, 101, 101});
+	
+			for(int i = 0; i < 6*10; i++){
+				delay(100);
+				System.out.println(i + " " + stopWatch.millis());
+			}
+	
+			arduino.printAllMessagesDebug();
+		}
+	
+		printStatusUpdate("PROGRAM TERMINATED");
 	}
 
 	public static void printByteArrayAsString(byte[] arr){
