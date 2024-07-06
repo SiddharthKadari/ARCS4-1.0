@@ -17,6 +17,7 @@ repositories {
 dependencies {
     implementation files('lib/twophase.jar')
     implementation 'com.fazecast:jSerialComm:2.11.0'
+    implementation group: 'org.bytedeco', name: 'javacv-platform', version: '1.5.9'
 }
 
 sourceSets {
