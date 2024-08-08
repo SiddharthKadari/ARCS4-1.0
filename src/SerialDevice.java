@@ -2,6 +2,7 @@ import com.fazecast.jSerialComm.*;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 
 public abstract class SerialDevice {
 
@@ -29,14 +30,14 @@ public abstract class SerialDevice {
 			}
 			@Override
 			public void serialEvent(SerialPortEvent serialPortEvent) {
-				byte[] data = serialPortEvent.getReceivedData();
-				int i = 0;
-				if(buffer == null){
-					buffer = new byte[data[0]];
-					i++;
-				}
+				processData(serialPortEvent.getReceivedData());
+			}
 
-				while(i < data.length){
+			private void processData(byte[] data){
+				int i = 0;
+				if(buffer == null) buffer = new byte[data[i++]];
+
+				while(i < data.length && dataIndex < buffer.length){
 					buffer[dataIndex++] = data[i++];
 				}
 
@@ -45,6 +46,8 @@ public abstract class SerialDevice {
 					messageReceived(buffer);
 					dataIndex = 0;
 					buffer = null;
+					if(i != data.length)
+						processData(Arrays.copyOfRange(data, i, data.length));
 				}
 			}
 		});
@@ -98,7 +101,7 @@ public abstract class SerialDevice {
 	}
 
 	public void printAllMessagesDebug(){
-		System.out.println();
+		System.out.println("\nNum Messages Recieved: " + receivedMessages.size());
 		for(byte[] arr : receivedMessages){
 			System.out.print(arr.length + " - ");
 			if(arr[0] > 46)

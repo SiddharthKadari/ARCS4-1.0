@@ -119,8 +119,9 @@ void setup() {
   pinMode(LED_BUILTIN, OUTPUT);
   Serial.begin(115200);
   delay(2000);
+  const String startMessage = "Arduino Start Message";
   if(!SERIAL_MONITOR_TEST){
-    serialSend("Arduino Start Message");
+    serialSend(startMessage);
     delay(500);
   }
 }
@@ -135,6 +136,8 @@ void serialEvent(){
 
   //DO STUFF WITH data
   serialSend(data, numBytes);
+  // setHeight(2);
+
 }
 
 /* ======================== ROTATION PARAMETER ========================
@@ -162,17 +165,13 @@ void flip(){
   5: Full cube can be rotated (depth 4)
 */
 void setHeight(uint8_t newHeight){
-
   height = newHeight;
+  serialSend("HEIGHT: " + String(newHeight));
 }
 
 void loop(){}
 
-void serialSend(String &str){
-  Serial.write(str.length());
-  Serial.print(str);
-}
-void serialSend(String str){
+void serialSend(const String &str){
   Serial.write(str.length());
   Serial.print(str);
 }
