@@ -56,19 +56,32 @@ public abstract class SerialDevice {
 		return port.isOpen();
 	}
 
-	public void send(byte b){
+	public void send(byte data){
 		try {
 			port.getOutputStream().write(1);
-			port.getOutputStream().write(b);
+			port.getOutputStream().write(data);
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
 	}
 
-	public void send(byte[] b){
+	public void send(byte[] data){
 		try {
-			port.getOutputStream().write(b.length);
-			port.getOutputStream().write(b);
+			port.getOutputStream().write(data.length);
+			port.getOutputStream().write(data);
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+	}
+
+	public void send(Byte[] data){
+		byte[] dataBytes = new byte[data.length];
+		int i = 0;
+		for(Byte b : data) dataBytes[i++] = b;
+
+		try {
+			port.getOutputStream().write(dataBytes.length);
+			port.getOutputStream().write(dataBytes);
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
@@ -88,10 +101,15 @@ public abstract class SerialDevice {
 		System.out.println();
 		for(byte[] arr : receivedMessages){
 			System.out.print(arr.length + " - ");
-			for(byte b : arr) System.out.print((char)b);
-			System.out.println();
-			for(byte b : arr) System.out.print(b + " ");
+			if(arr[0] > 46)
+				for(byte b : arr) System.out.print((char)b);
+			else
+				for(byte b : arr) System.out.print(b + " ");
 			System.out.println('\n');
 		}
+	}
+
+	public void closeDevice(){
+		port.closePort();
 	}
 }

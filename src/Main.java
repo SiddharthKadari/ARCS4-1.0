@@ -4,10 +4,12 @@ import java.util.concurrent.TimeoutException;
 
 import cs.threephase.FullCube;
 import cs.threephase.Search;
+import cs.threephase.Tools;
 
 import org.bytedeco.javacpp.BytePointer;
 import org.bytedeco.javacv.*;
 import org.bytedeco.opencv.opencv_core.*;
+
 import org.bytedeco.opencv.global.opencv_imgproc;
 
 
@@ -15,14 +17,15 @@ public class Main {
 
 	public static final Stopwatch stopWatch = new Stopwatch();
 
-	private static final boolean USING_SOLVER = false;
-	private static final boolean TESTING_SOLVER = true && USING_SOLVER;
+	private static final boolean USING_SOLVER = true;
+	private static final boolean USING_ARDUINO = true;
+	private static final boolean USING_WEBCAM = false;
 
-	private static final boolean USING_ARDUINO = false;
-	private static final boolean TESTING_ARDUINO = true && USING_ARDUINO;
-
-	private static final boolean USING_WEBCAM = true;
-	private static final boolean TESTING_WEBCAM = true && USING_WEBCAM;
+	private static final boolean TESTING_SOLVER = false && USING_SOLVER;
+	private static final boolean TESTING_ARDUINO = false && USING_ARDUINO;
+	private static final boolean TESTING_WEBCAM = false && USING_WEBCAM;
+	private static final boolean TESTING_SOLVER_ARDUINO = true && USING_SOLVER && USING_ARDUINO;
+	
 
 	public static void main(String[] args) throws TimeoutException {
 		printStatusUpdate("PROGRAM START");
@@ -76,9 +79,9 @@ public class Main {
 				e.printStackTrace();
 			}
 
-			System.out.println("Webcam Connected");
+			printStatusUpdate("WEBCAM CONNECTED");
 		}
-
+		
 		if(TESTING_SOLVER){
 			FullCube cube = new FullCube(new Random(System.nanoTime()));
 
@@ -102,11 +105,8 @@ public class Main {
 			stopWatch.start();
 			arduino.send(new byte[]{101, 101, 101, 101});
 	
-			for(int i = 0; i < 6*10; i++){
-				delay(100);
-				System.out.println(i + " " + stopWatch.millis());
-			}
-	
+			delay(500);
+
 			arduino.printAllMessagesDebug();
 		}
 	
@@ -149,7 +149,38 @@ public class Main {
 			canvasFrame.dispose();
 		}
 
-		printStatusUpdate("PROGRAM TERMINATED");
+
+
+		if(TESTING_SOLVER_ARDUINO){
+			printStatusUpdate("TESTING SOLVER AND ARDUINO");
+
+			FullCube cube = new FullCube(new Random(System.nanoTime()));
+
+			Search search = new Search();
+			search.with_rotation = false;
+
+			Byte[] sol = search.byteSolve(cube);
+
+			System.out.println("Solve Sequence (Length = " + sol.length + "): ");
+			for(int i = 0; i < sol.length; i++){
+				System.out.print(sol[i].toString() + " ");
+			}
+			System.out.println();
+			arduino.send(sol);
+		}
+
+
+
+
+
+
+		printStatusUpdate("PROGRAM CLEANUP");
+		delay(1000);
+		if(USING_ARDUINO){
+			arduino.printAllMessagesDebug();
+			arduino.closeDevice();
+		}
+		printStatusUpdate("MAIN TERMINATED");
 	}
 
 	private static int[] getRGBAt(BytePointer data, int x, int y, int w, int h){
@@ -179,13 +210,13 @@ public class Main {
 
 		try {
 			DataInputStream dis = new DataInputStream(new BufferedInputStream(new FileInputStream("threephase.data")));
-			cs.threephase.Tools.initFrom(dis);
+			Tools.initFrom(dis);
 			dis.close();
 		} catch (IOException e) {
 			e.printStackTrace();
 			try {
 				DataOutputStream dos = new DataOutputStream(new BufferedOutputStream(new FileOutputStream("threephase.data")));
-				cs.threephase.Tools.saveTo(dos);
+				Tools.saveTo(dos);
 				dos.close();
 			} catch (IOException e2) {
 				e2.printStackTrace();

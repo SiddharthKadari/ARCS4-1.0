@@ -3,6 +3,19 @@ import java.util.Map;
 import java.util.Set;
 
 public class Stopwatch {
+
+	public static enum Units{
+		NANOSECONDS(1e1),
+		MICROSECONDS(1e3),
+		MILLISECONDS(1e6),
+		SECONDS(1e9);
+
+		private Units(double nanosEquivalent){
+			this.nanosEquivalent = nanosEquivalent;
+		}
+		public double nanosEquivalent;
+	};
+
 	//Stopwatch is paused when lastStart = 0
 	private long lastStart = 0, accumTime = 0;
 	private HashMap<String, Double> recordedTimes = new HashMap<>();
@@ -14,10 +27,8 @@ public class Stopwatch {
 	}
 
 	//Resets the elapsed time on the stopwatch and pauses. Records the time previously tracked in a Hashmap linked to the provided label
-	public void reset(String label){
+	public void logTime(String label){
 		recordedTimes.put(label, nanos());
-		accumTime = 0;
-		lastStart = 0;
 	}
 
 	//Starts timing
@@ -66,11 +77,11 @@ public class Stopwatch {
 		return recordedTimes.get(label);
 	}
 
-	public void printAllRecords(){
+	public void printAllRecords(Units units){
 		Set<Map.Entry<String, Double>> record = recordedTimes.entrySet();
 
 		for(Map.Entry<String, Double> entry : record){
-			System.out.println(entry.getKey() + " : " + entry.getValue());
+			System.out.println(entry.getKey() + "\t:\t" + (entry.getValue() / units.nanosEquivalent));
 		}
 	}
 }
