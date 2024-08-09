@@ -1,6 +1,13 @@
 #include <string.h>
 
-//======================== BIT ABSTRACTION STRUCTURES ========================
+//======================== BIT ABSTRACTION STRUCTURES AND CONSTANTS ========================
+
+// Robot State Descriptors
+const uint8_t HEIGHT_FLIP = 0; // Elevator fully lowered, cube can flip
+const uint8_t HEIGHT_DEPTH1 = 1; // Depth of 1 sides can be rotated
+const uint8_t HEIGHT_DEPTH2 = 2; // Depth of 2 sides can be rotated
+const uint8_t HEIGHT_DEPTH3 = 3; // Depth of 3 sides can be rotated
+const uint8_t HEIGHT_DEPTH4 = 4; // Depth of 3 sides can be rotated
 
 // Axes Descriptors:
 const uint8_t AXIS_DESCRIPTOR_BITLENGTH = 2;
@@ -40,6 +47,7 @@ const uint8_t FACE_B =
 //    m2m1m0 = front face
 const uint8_t ORIENT_DESCRIPTOR_BITLENGTH = 2* FACE_DESCRIPTOR_BITLENGTH;
 const uint8_t ORIENT_TO_FRONT_FACE_BITMASK = ~(-1<<FACE_DESCRIPTOR_BITLENGTH);
+const uint8_t ORIENT_TO_UP_FACE_BITMASK = (~(-1<<FACE_DESCRIPTOR_BITLENGTH))<<FACE_DESCRIPTOR_BITLENGTH;
 const uint8_t ORIENT_UR = (FACE_U <<FACE_DESCRIPTOR_BITLENGTH) +
                            FACE_R;
 const uint8_t ORIENT_UF = (FACE_U <<FACE_DESCRIPTOR_BITLENGTH) + 
@@ -91,19 +99,27 @@ const uint8_t ORIENT_BL = (FACE_B <<FACE_DESCRIPTOR_BITLENGTH) +
 ;
 const uint8_t REORIENT_180_ROTATION_BITMASK = 1 << AXIS_DESCRIPTOR_BITLENGTH;
 
+const uint8_t MOVE_MAG_BITMASK    = 0b00100000;
+const uint8_t MOVE_DIR_BITMASK    = 0b00010000;
+const uint8_t MOVE_DEPTH_BITMASK  = 0b00001000;
+const uint8_t MOVE_FACE_BITMASK   = 0b00000111;
+
 /* ======================== BIT ABSTRACTION STRUCTURES ALGEBRA ========================
 
-  orient = cube orientation
+  orientation = cube orientation
   face = one of the 6 faces of the cube (0, 1, 2, 4, 5, 6)
   axis = one of the 3 axes of faces of the cube (0, 1, and 2)
 
-    upward facing face = orient >> FACE_DESCRIPTOR_BITLENGTH
-    front facing face = orient & ORIENT_TO_FRONT_FACE_BITMASK
+    upward facing face = orientation >> FACE_DESCRIPTOR_BITLENGTH
+    front facing face = orientation & ORIENT_TO_FRONT_FACE_BITMASK
     axis = face & FACE_TO_AXIS_BITMASK
     primary/secondary = face >> AXIS_DESCRIPTOR_BITLENGTH
 
   Cube rotation 180 degrees of depth 4:
-    orient ^= REORIENT_180_ROTATION_BITMASK
+    orientation ^= REORIENT_180_ROTATION_BITMASK
+
+  Given a certain orientation, here is an efficient way of identifying which is the third axis, that is not the upward axis or the forward axis
+    uint8_t thirdAxis = 3 - (orientation + (orientation >> FACE_DESCRIPTOR_BITLENGTH)) & FACE_TO_AXIS_BITMASK;
 
 */
 
@@ -118,7 +134,7 @@ void setup() {
   // initialize digital pin LED_BUILTIN as an output.
   pinMode(LED_BUILTIN, OUTPUT);
   Serial.begin(115200);
-  delay(2000);
+  delay(1000);
   const String startMessage = "Arduino Start Message";
   if(!SERIAL_MONITOR_TEST){
     serialSend(startMessage);
@@ -135,35 +151,56 @@ void serialEvent(){
   Serial.readBytes(data, numBytes);
 
   //DO STUFF WITH data
-  serialSend(data, numBytes);
-  // setHeight(2);
-
+  // serialSend(data, numBytes);
+  for(uint8_t move : data){
+  }
+  setHeight(4);
+  rotate(0b110000);
+  flip();
 }
 
 /* ======================== ROTATION PARAMETER ========================
-  First bit of the parameter corresponds to turn magnitude, quarter turn if 0, half turn if 1
-  Second bit determines turn direction, is fed directly into DIR pin
+  rotation = m7m6m5m4m3m2m1m0
+
+  m5 of the parameter corresponds to turn magnitude, quarter turn if 0, half turn if 1
+  m4 determines turn direction, is fed directly into DIR pin, 0 for CW, 1 for CCW
 */
 void rotate(uint8_t rotation){
 
-}
 
+  if(height == HEIGHT_DEPTH4){ // if the whole cube is being rotated, then the orientation is changing
+    if(rotation & MOVE_MAG_BITMASK == 1){ // 180 degree turn, means the secondary axis is being flipped
+      orientation ^= REORIENT_180_ROTATION_BITMASK;
+    }else{ // 90 degree turn, the secondary axis changes to the remaining axis
+      /*
+        When a 90 degree turn occurrs, the upward facing face remains the same, but the front facing face changes
+        To calculate the new front facing face, we can apply the following:
+        assume orientation is formatted as follows:
+        orientation = m5m4m3m2m1m0
+        dir = the direction defined by the rotation parameter
+
+        To calculate the new axis:
+          newAxis = thirdAxis = 3 - (orientation + (orientation >> FACE_DESCRIPTOR_BITLENGTH)) & FACE_TO_AXIS_BITMASK;
+        To calculate if the new face is the primary or secondary face:
+          newPriSec = ((m4 ^ m3) & ~m1) ^ m0 ^ m2 ^ m3 ^ m5 ^ dir;
+
+        When calculating the new front face, the following code will perform the above calculations, but they may appear differently to optimize computation time
+      */
+      orientation = orientation & ORIENT_TO_UP_FACE_BITMASK + //preserve upward face
+                    3 - (orientation + (orientation >> FACE_DESCRIPTOR_BITLENGTH)) & FACE_TO_AXIS_BITMASK + // insert new axis of front face;
+                    ((((orientation >> 2) ^ (orientation >> 1)) & ~(orientation << 1)) ^ (orientation << 2) ^ orientation ^ (orientation >> 1) ^ (orientation >> 3) ^ (rotation >> 2)) && 0b100; // compute whether new face is primary or secondary
+    }
+  }
+  serialSend("ROTATE (depth = " + String(height) + ((rotation & MOVE_MAG_BITMASK) == MOVE_MAG_BITMASK ? ", HALF " : ", QUARTER ") + ((rotation & MOVE_DIR_BITMASK) == MOVE_DIR_BITMASK ? "CCW)" : "CW)"));
+}
 void flip(){
   if(height == 0){ //front and up facing sides swap
     orientation = (orientation & ORIENT_TO_FRONT_FACE_BITMASK) << FACE_DESCRIPTOR_BITLENGTH + (orientation >> 3);
   }else{ //front facing side switches to the opposite side, up remains same
     orientation ^= REORIENT_180_ROTATION_BITMASK;
   }
+  serialSend("FLIP");
 }
-
-/* ======================== HEIGHT SETTINGS ========================
-  0: Elevator fully lowered, cube can to flip
-  1: Elevator partially lowered, cube is elevated, flipper can flip without altering cube orientation, cube face cannot be rotated at all
-  2: Depth of 1 sides can be rotated
-  3: Depth of 2 sides can be rotated
-  4: Depth of 3 sides can be rotated
-  5: Full cube can be rotated (depth 4)
-*/
 void setHeight(uint8_t newHeight){
   height = newHeight;
   serialSend("HEIGHT: " + String(newHeight));

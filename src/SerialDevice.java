@@ -102,8 +102,9 @@ public abstract class SerialDevice {
 
 	public void printAllMessagesDebug(){
 		System.out.println("\nNum Messages Recieved: " + receivedMessages.size());
+		int i = 0;
 		for(byte[] arr : receivedMessages){
-			System.out.print(arr.length + " - ");
+			System.out.print(i++ + ") ");
 			if(arr[0] > 46)
 				for(byte b : arr) System.out.print((char)b);
 			else

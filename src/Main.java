@@ -34,13 +34,14 @@ public class Main {
 		OpenCVFrameGrabber grabber;
 
 		if(USING_SOLVER){
+			printStatusUpdate(">>> INITIALIZE SOLVER");
 			//Initializing .data files
 			initializeSolveData();
-
-			printStatusUpdate("SOLVER INITIALIZED");
+			printStatusUpdate("<<< SOLVER INITIALIZED");;
 		}
 
 		if(USING_ARDUINO){
+			printStatusUpdate(">>> CONNECT ARDUINO");
 			System.out.println("Connecting to Arduino...");
 
 			try {
@@ -65,11 +66,13 @@ public class Main {
 				}
 			}
 
-			printStatusUpdate("ARDUINO CONNECTED");
+			printStatusUpdate("<<< ARDUINO CONNECTED");
 			delay(1000);
 		}
 
 		if(USING_WEBCAM){
+			printStatusUpdate(">>> CONNECT WEBCAM");
+
 			System.out.println("Connecting to webcam...");
 			grabber = new OpenCVFrameGrabber(0); // 0 for default camera
 
@@ -79,9 +82,11 @@ public class Main {
 				e.printStackTrace();
 			}
 
-			printStatusUpdate("WEBCAM CONNECTED");
+			printStatusUpdate("<<< WEBCAM CONNECTED");
 		}
-		
+	
+		printStatusUpdate(" ## SYSTEM INIT COMPLETE ##");
+
 		if(TESTING_SOLVER){
 			FullCube cube = new FullCube(new Random(System.nanoTime()));
 
@@ -152,8 +157,6 @@ public class Main {
 
 
 		if(TESTING_SOLVER_ARDUINO){
-			printStatusUpdate("TESTING SOLVER AND ARDUINO");
-
 			FullCube cube = new FullCube(new Random(System.nanoTime()));
 
 			Search search = new Search();
