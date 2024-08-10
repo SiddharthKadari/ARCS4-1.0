@@ -10,8 +10,8 @@ class CornerCube {
 	 */
 	private static CornerCube[] moveCube = new CornerCube[18];
 
-	private static final int[] cpmv = {1, 0, 1, 1, 0, 1, 1, 0, 1, 1, 0, 1, 1, 0, 1, 1, 0, 1, 
-										1, 0, 1, 1, 0, 1, 1, 0, 1, 1, 0, 1, 1, 0, 1, 1, 0, 1};
+	// private static final int[] cpmv = {1, 0, 1, 1, 0, 1, 1, 0, 1, 1, 0, 1, 1, 0, 1, 1, 0, 1, 
+	// 									1, 0, 1, 1, 0, 1, 1, 0, 1, 1, 0, 1, 1, 0, 1, 1, 0, 1};
 
 	byte[] cp = {0, 1, 2, 3, 4, 5, 6, 7};
 	byte[] co = {0, 0, 0, 0, 0, 0, 0, 0};

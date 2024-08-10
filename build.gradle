@@ -41,4 +41,4 @@ tasks.register('cleanData', Delete) {
     delete fileTree(dir: '.', include: '*.data')
 }
 
-clean.dependsOn cleanData
+clean.dependsOn cleanData   

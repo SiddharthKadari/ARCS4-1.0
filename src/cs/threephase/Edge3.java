@@ -1,7 +1,6 @@
 package cs.threephase;
 
 import java.util.Arrays;
-import static cs.threephase.Util.*;
 
 /*
  					13	1	

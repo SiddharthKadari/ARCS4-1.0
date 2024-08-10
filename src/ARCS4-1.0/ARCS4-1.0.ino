@@ -284,7 +284,7 @@ void flip(){
   #endif
 
   if(height == 0){ //front and up facing sides swap
-    orientation = (orientation & ORIENT_TO_FRONT_FACE_BITMASK) << FACE_DESCRIPTOR_BITLENGTH + (orientation >> 3);
+    orientation = ((orientation & ORIENT_TO_FRONT_FACE_BITMASK) << FACE_DESCRIPTOR_BITLENGTH) + (orientation >> 3);
   }else{ //front facing side switches to the opposite side, up remains same
     orientation ^= REORIENT_180_ROTATION_BITMASK;
   }

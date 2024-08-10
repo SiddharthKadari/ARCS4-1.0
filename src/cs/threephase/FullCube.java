@@ -79,8 +79,8 @@ Center Cubies:
 package cs.threephase;
 
 import java.util.*;
+
 import static cs.threephase.Moves.*;
-import static cs.threephase.Util.*;
 import static cs.threephase.Center1.symmove;
 import static cs.threephase.Center1.symmult;
 import static cs.threephase.Center1.syminv;

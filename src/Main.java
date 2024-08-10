@@ -18,10 +18,10 @@ public class Main {
 	public static final Stopwatch stopWatch = new Stopwatch();
 
 	private static final boolean USING_SOLVER = true;
-	private static final boolean USING_ARDUINO = true;
+	private static final boolean USING_ARDUINO = false;
 	private static final boolean USING_WEBCAM = false;
 
-	private static final boolean TESTING_SOLVER = false && USING_SOLVER;
+	private static final boolean TESTING_SOLVER = true && USING_SOLVER;
 	private static final boolean TESTING_ARDUINO = false && USING_ARDUINO;
 	private static final boolean TESTING_WEBCAM = false && USING_WEBCAM;
 	private static final boolean TESTING_SOLVER_ARDUINO = true && USING_SOLVER && USING_ARDUINO;
@@ -88,22 +88,8 @@ public class Main {
 		printStatusUpdate(" ## SYSTEM INIT COMPLETE ##");
 
 		if(TESTING_SOLVER){
-			FullCube cube = new FullCube(new Random(System.nanoTime()));
-
-			Search search = new Search();
-			search.with_rotation = false;
-			stopWatch.start();
-
-			Byte[] sol = search.byteSolve(cube);
-
-			stopWatch.stop();
-
-			for(int i = 0; i < sol.length; i++){
-				System.out.print(sol[i].toString() + " ");
-			}
-			System.out.println("\n" + stopWatch.millis());
-
-			System.out.println(sol.length);
+			FullCube cube = new FullCube();
+			System.out.println(cube);
 		}
 
 		if(TESTING_ARDUINO){
@@ -163,11 +149,14 @@ public class Main {
 			search.with_rotation = false;
 
 			Byte[] sol = search.byteSolve(cube);
+			String solStr = search.solve(cube);
 
 			System.out.println("Solve Sequence (Length = " + sol.length + "): ");
 			for(int i = 0; i < sol.length; i++){
 				System.out.print(sol[i].toString() + " ");
 			}
+			System.out.println("\n\nSolve Sequence (Length = " + sol.length + "): " + solStr);
+
 			System.out.println();
 			arduino.send(sol);
 		}

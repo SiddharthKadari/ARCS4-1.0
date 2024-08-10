@@ -21,7 +21,6 @@ import static cs.threephase.Util.*;
 import static cs.threephase.Center2.rlmv;
 import static cs.threephase.Center2.ctmv;
 import static cs.threephase.Center2.ctprun;
-import static cs.threephase.Center2.rlrot;
 import static cs.threephase.Center1.symmult;
 import static cs.threephase.Center1.ctsmv;
 import static cs.threephase.Center1.csprun;
@@ -140,6 +139,12 @@ public class Search {
 		return solution;
 	}
 
+	public String solve(FullCube cube){
+		c = cube;
+		doSearch();
+		return solution;
+	}
+
 	public String solve(String scramble) {
 		int[] moveseq = tomove(scramble);
 		return solve(moveseq);
@@ -207,7 +212,6 @@ public class Search {
 		} while (length12 == 100);
 		Arrays.sort(arr2, 0, arr2idx);
 		int length123, index = 0;
-		int solcnt = 0;
 
 		int MAX_LENGTH3 = 13;
 		do {
@@ -229,7 +233,6 @@ public class Search {
 
 					if (prun <= length123 - arr2[i].length1 - arr2[i].length2 
 							&& search3(edge, ct, prun, length123 - arr2[i].length1 - arr2[i].length2, lm, 0)) {
-						solcnt++;
 	//					if (solcnt == 5) {
 							index = i;
 							break OUT2;
@@ -320,7 +323,6 @@ public class Search {
 		} while (length12 == 100);
 		Arrays.sort(arr2, 0, arr2idx);
 		int length123, index = 0;
-		int solcnt = 0;
 
 		int MAX_LENGTH3 = 13;
 		do {
@@ -342,7 +344,6 @@ public class Search {
 
 					if (prun <= length123 - arr2[i].length1 - arr2[i].length2 
 							&& search3(edge, ct, prun, length123 - arr2[i].length1 - arr2[i].length2, lm, 0)) {
-						solcnt++;
 	//					if (solcnt == 5) {
 							index = i;
 							break OUT2;
@@ -506,7 +507,6 @@ public class Search {
 		int eparity = e12.set(c2.getEdge());
 		ct3.set(c2.getCenter(), eparity ^ c2.getCorner().getParity());
 		int ct = ct3.getct();
-		int edge = e12.get(10);
 		int prun = Edge3.getprun(e12.getsym());
 
 		if (arr2[arr2idx] == null) {

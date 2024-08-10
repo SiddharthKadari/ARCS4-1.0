@@ -1,7 +1,6 @@
 package cs.threephase;
 
 import static cs.threephase.Util.*;
-import static cs.threephase.Moves.*;
 import java.util.*;
 
 
