@@ -1,6 +1,6 @@
+package cs.threephase;
 import java.io.*;
 import java.util.*;
-import cs.threephase.Search;
 
 
 public class test {

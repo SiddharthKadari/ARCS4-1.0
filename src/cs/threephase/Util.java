@@ -1,8 +1,6 @@
 package cs.threephase;
 import static cs.threephase.Moves.*;
 
-import java.io.*;
-
 class Util {
 
 	static int[][] Cnk = new int[25][25];
