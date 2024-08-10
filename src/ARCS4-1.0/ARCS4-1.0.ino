@@ -14,6 +14,12 @@ const uint8_t ROTATE_QTURN  = 0b000000;
 const uint8_t ROTATE_HTURN  = 0b100000;
 const uint8_t ROTATE_CW     = 0b000000;
 const uint8_t ROTATE_CCW    = 0b010000;
+const uint8_t ROTATE_PRIM   = 0b000000;
+const uint8_t ROTATE_SECD   = 0b000100;
+const uint8_t ROTATE_Q_CW   = ROTATE_QTURN + ROTATE_CW;
+const uint8_t ROTATE_Q_CCW  = ROTATE_QTURN + ROTATE_CCW;
+const uint8_t ROTATE_H_CW   = ROTATE_HTURN + ROTATE_CW;
+const uint8_t ROTATE_H_CCW  = ROTATE_HTURN + ROTATE_CCW;
 
 // Axes Descriptors:
 const uint8_t AXIS_DESCRIPTOR_BITLENGTH = 2;
@@ -25,7 +31,8 @@ const uint8_t AXIS_FB = 2;
 //    m1m0  = axis descriptor
 //    m2    = primary(0)/secondary(1) face
 const uint8_t FACE_DESCRIPTOR_BITLENGTH = 1 + AXIS_DESCRIPTOR_BITLENGTH;
-const uint8_t FACE_TO_AXIS_BITMASK = ~(-1<<AXIS_DESCRIPTOR_BITLENGTH);
+const uint8_t FACE_TO_PYSY_BITMASK = 1<<AXIS_DESCRIPTOR_BITLENGTH;
+const uint8_t FACE_TO_AXIS_BITMASK = FACE_TO_PYSY_BITMASK - 1;
 const uint8_t FACE_U = 
               (0 <<AXIS_DESCRIPTOR_BITLENGTH) + 
               AXIS_UD; // 0
@@ -176,6 +183,15 @@ void serialEvent(){
   rotate(ROTATE_CCW + ROTATE_HTURN);
   rotate(ROTATE_CW + ROTATE_QTURN);
   rotate(ROTATE_CCW + ROTATE_QTURN);
+  setHeight(3);
+  rotate(ROTATE_CW + ROTATE_HTURN + ROTATE_PRIM);
+  rotate(ROTATE_CCW + ROTATE_HTURN + ROTATE_PRIM);
+  rotate(ROTATE_CW + ROTATE_QTURN + ROTATE_PRIM);
+  rotate(ROTATE_CCW + ROTATE_QTURN + ROTATE_PRIM);
+  rotate(ROTATE_CW + ROTATE_HTURN + ROTATE_SECD);
+  rotate(ROTATE_CCW + ROTATE_HTURN + ROTATE_SECD);
+  rotate(ROTATE_CW + ROTATE_QTURN + ROTATE_SECD);
+  rotate(ROTATE_CCW + ROTATE_QTURN + ROTATE_SECD);
 }
 
 /* ======================== ROTATION PARAMETER ========================
@@ -183,14 +199,17 @@ void serialEvent(){
 
   m5 of the parameter corresponds to turn magnitude, quarter turn if 0, half turn if 1
   m4 determines turn direction, is fed directly into DIR pin, 0 for CW, 1 for CCW
+  m2 determines if the intended turn face is a primary or secondary face, 0 for primary, 1 for secondary
+
+  If the currently facing upward face does not match the intended turn face according to m2, then the turn direction will be inverted (CW <-> CCW)
 */
 void rotate(uint8_t rotation){
   #ifdef DEBUG
   uint8_t startOrientation = orientation;
   #endif
 
-  if(height == HEIGHT_DEPTH4){ // if the whole cube is being rotated, then the orientation is changing
-    if((rotation & MOVE_MAG_BITMASK) == ROTATE_HTURN){ // 180 degree turn, means the secondary axis is being flipped
+  if(height == HEIGHT_DEPTH4 || (((orientation >> FACE_DESCRIPTOR_BITLENGTH) ^ rotation) & FACE_TO_PYSY_BITMASK)){ // if the whole cube is being rotated, or if the intended turn face is opposite from the currently upward facing face, then the orientation is changing
+    if(rotation & MOVE_MAG_BITMASK){ // 180 degree turn, means the secondary axis is being flipped
       orientation ^= REORIENT_180_ROTATION_BITMASK;
     }else{ // 90 degree turn, the secondary axis changes to the remaining axis
       /*
@@ -209,12 +228,12 @@ void rotate(uint8_t rotation){
       */
       orientation = (orientation & ORIENT_TO_UP_FACE_BITMASK) + //preserve upward face
                     (3 - ((orientation + (orientation >> FACE_DESCRIPTOR_BITLENGTH)) & FACE_TO_AXIS_BITMASK)) + // insert new axis of front face;
-                    (((((orientation >> 2) ^ (orientation >> 1)) & ~(orientation << 1)) ^ (orientation << 2) ^ orientation ^ (orientation >> 1) ^ (orientation >> 3) ^ (rotation >> 2)) & 0b100); // compute whether new face is primary or secondary
+                    (((((orientation >> 2) ^ (orientation >> 1)) & ~(orientation << 1)) ^ (orientation << 2) ^ orientation ^ (orientation >> 1) ^ (orientation >> 3) ^ (rotation >> 2)) & FACE_TO_PYSY_BITMASK); // compute whether new face is primary or secondary
     }
   }
 
   #ifdef DEBUG
-  serialSendDebug("ROTATE (depth = " + String(height) + ((rotation & MOVE_MAG_BITMASK) == MOVE_MAG_BITMASK ? ", HALF " : ", QUARTER ") + ((rotation & MOVE_DIR_BITMASK) == MOVE_DIR_BITMASK ? "CCW)" : "CW)"), startOrientation);
+  serialSendDebug("ROTATE (depth = " + String(height) + ((rotation & MOVE_MAG_BITMASK) == MOVE_MAG_BITMASK ? ", HALF " : ", QUARTER ") + ((rotation & MOVE_DIR_BITMASK) == MOVE_DIR_BITMASK ? "CCW " : "CW ") + (rotation & FACE_TO_PYSY_BITMASK ? "SECONDARY)" : "PRIMARY)"), startOrientation);
   #endif
 }
 void flip(){
