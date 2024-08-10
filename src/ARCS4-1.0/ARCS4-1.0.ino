@@ -2,7 +2,7 @@
 
 #define DEBUG
 
-//======================== BIT ABSTRACTION STRUCTURES AND CONSTANTS ========================
+//======================== ROBOT STATE AND CONTROL CONSTANTS ========================
 
 // Robot State Descriptors
 const uint8_t HEIGHT_FLIP = 0; // Elevator fully lowered, cube can flip
@@ -20,6 +20,8 @@ const uint8_t ROTATE_Q_CW   = ROTATE_QTURN + ROTATE_CW;
 const uint8_t ROTATE_Q_CCW  = ROTATE_QTURN + ROTATE_CCW;
 const uint8_t ROTATE_H_CW   = ROTATE_HTURN + ROTATE_CW;
 const uint8_t ROTATE_H_CCW  = ROTATE_HTURN + ROTATE_CCW;
+
+//======================== BIT ABSTRACTION STRUCTURES AND CONSTANTS ========================
 
 // Axes Descriptors:
 const uint8_t AXIS_DESCRIPTOR_BITLENGTH = 2;
@@ -166,33 +168,38 @@ void serialEvent(){
   //DO STUFF WITH data
   // serialSend(data, numBytes);
   for(uint8_t move : data){
+    uint8_t upwardFaceXorMove = orientation >> FACE_DESCRIPTOR_BITLENGTH ^ move;
+    if(upwardFaceXorMove & FACE_TO_AXIS_BITMASK){// if the primary axis is not the target axis
+      if((orientation ^ move) & FACE_TO_AXIS_BITMASK){// if the secondary axis is not the target axis
+        executeMoveTertiaryAxisIsTarget(move);
+      }else{// if the secondary axis is the target axis
+        executeMoveSecondaryAxisIsTarget(move);
+      }
+    }else{ //if the primary axis is already the target axis
+      executeMovePrimaryAxisIsTarget(move, upwardFaceXorMove & FACE_TO_PYSY_BITMASK);
+    }
   }
-  setHeight(0);
-  flip();
-  rotate(ROTATE_CW + ROTATE_QTURN);
-  setHeight(1);
-  rotate(ROTATE_CW + ROTATE_QTURN);
-  setHeight(2);
-  rotate(ROTATE_CW + ROTATE_QTURN);
-  setHeight(3);
-  rotate(ROTATE_CW + ROTATE_QTURN);
-  setHeight(4);
-  rotate(ROTATE_CW + ROTATE_QTURN);
-  flip();
-  rotate(ROTATE_CW + ROTATE_HTURN);
-  rotate(ROTATE_CCW + ROTATE_HTURN);
-  rotate(ROTATE_CW + ROTATE_QTURN);
-  rotate(ROTATE_CCW + ROTATE_QTURN);
-  setHeight(3);
-  rotate(ROTATE_CW + ROTATE_HTURN + ROTATE_PRIM);
-  rotate(ROTATE_CCW + ROTATE_HTURN + ROTATE_PRIM);
-  rotate(ROTATE_CW + ROTATE_QTURN + ROTATE_PRIM);
-  rotate(ROTATE_CCW + ROTATE_QTURN + ROTATE_PRIM);
-  rotate(ROTATE_CW + ROTATE_HTURN + ROTATE_SECD);
-  rotate(ROTATE_CCW + ROTATE_HTURN + ROTATE_SECD);
-  rotate(ROTATE_CW + ROTATE_QTURN + ROTATE_SECD);
-  rotate(ROTATE_CCW + ROTATE_QTURN + ROTATE_SECD);
 }
+void executeMovePrimaryAxisIsTarget(uint8_t move, uint8_t isPrimaryAxisInverted){
+  setHeight(move & MOVE_DEPTH_BITMASK ? 2 : isPrimaryAxisInverted / 2 + 1);
+  rotate(move, isPrimaryAxisInverted);
+}
+void executeMoveSecondaryAxisIsTarget(uint8_t move){
+  setHeight(HEIGHT_FLIP);
+  flip();
+
+  executeMovePrimaryAxisIsTarget(move, (orientation >> FACE_DESCRIPTOR_BITLENGTH ^ move) & FACE_TO_PYSY_BITMASK);
+}
+void executeMoveTertiaryAxisIsTarget(uint8_t move){
+  setHeight(HEIGHT_DEPTH4);
+
+  rotate((((((orientation >> 2) ^ (orientation >> 1)) & ~(orientation << 1)) ^ (orientation << 2) ^ orientation ^ (orientation >> 1) ^ (orientation >> 3) ^ move) & FACE_TO_PYSY_BITMASK) << 2);
+
+  executeMoveSecondaryAxisIsTarget(move);
+}
+
+
+
 
 /* ======================== ROTATION PARAMETER ========================
   rotation = m7m6m5m4m3m2m1m0
@@ -209,6 +216,41 @@ void rotate(uint8_t rotation){
   #endif
 
   if(height == HEIGHT_DEPTH4 || (((orientation >> FACE_DESCRIPTOR_BITLENGTH) ^ rotation) & FACE_TO_PYSY_BITMASK)){ // if the whole cube is being rotated, or if the intended turn face is opposite from the currently upward facing face, then the orientation is changing
+    if(rotation & MOVE_MAG_BITMASK){ // 180 degree turn, means the secondary axis is being flipped
+      orientation ^= REORIENT_180_ROTATION_BITMASK;
+    }else{ // 90 degree turn, the secondary axis changes to the remaining axis
+      /*
+        When a 90 degree turn occurrs, the upward facing face remains the same, but the front facing face changes
+        To calculate the new front facing face, we can apply the following:
+        assume orientation is formatted as follows:
+        orientation = m5m4m3m2m1m0
+        dir = the direction defined by the rotation parameter
+
+        To calculate the new axis:
+          newAxis = thirdAxis = 3 - (orientation + (orientation >> FACE_DESCRIPTOR_BITLENGTH)) & FACE_TO_AXIS_BITMASK;
+        To calculate if the new face is the primary or secondary face:
+          newPriSec = ((m4 ^ m3) & ~m1) ^ m0 ^ m2 ^ m3 ^ m5 ^ dir;
+
+        When calculating the new front face, the following code will perform the above calculations, but they may appear differently to optimize computation time
+      */
+      orientation = (orientation & ORIENT_TO_UP_FACE_BITMASK) + //preserve upward face
+                    (3 - ((orientation + (orientation >> FACE_DESCRIPTOR_BITLENGTH)) & FACE_TO_AXIS_BITMASK)) + // insert new axis of front face;
+                    (((((orientation >> 2) ^ (orientation >> 1)) & ~(orientation << 1)) ^ (orientation << 2) ^ orientation ^ (orientation >> 1) ^ (orientation >> 3) ^ (rotation >> 2)) & FACE_TO_PYSY_BITMASK); // compute whether new face is primary or secondary
+    }
+  }
+
+  #ifdef DEBUG
+  serialSendDebug("ROTATE (depth = " + String(height) + ((rotation & MOVE_MAG_BITMASK) == MOVE_MAG_BITMASK ? ", HALF " : ", QUARTER ") + ((rotation & MOVE_DIR_BITMASK) == MOVE_DIR_BITMASK ? "CCW " : "CW ") + (rotation & FACE_TO_PYSY_BITMASK ? "SECONDARY)" : "PRIMARY)"), startOrientation);
+  #endif
+}
+// isPrimaryAxisInverted is non-zero if the intended turn face is opposite from the currently upward facing face
+// isPrimaryAxisInverted = (((orientation >> FACE_DESCRIPTOR_BITLENGTH) ^ rotation) & FACE_TO_PYSY_BITMASK)
+void rotate(uint8_t rotation, uint8_t isPrimaryAxisInverted){
+  #ifdef DEBUG
+  uint8_t startOrientation = orientation;
+  #endif
+
+  if(height == HEIGHT_DEPTH4 || isPrimaryAxisInverted){ // if the whole cube is being rotated, or if the intended turn face is opposite from the currently upward facing face, then the orientation is changing
     if(rotation & MOVE_MAG_BITMASK){ // 180 degree turn, means the secondary axis is being flipped
       orientation ^= REORIENT_180_ROTATION_BITMASK;
     }else{ // 90 degree turn, the secondary axis changes to the remaining axis
