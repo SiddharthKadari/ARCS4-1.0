@@ -1,5 +1,7 @@
 #include <string.h>
 
+#define DEBUG
+
 //======================== BIT ABSTRACTION STRUCTURES AND CONSTANTS ========================
 
 // Robot State Descriptors
@@ -8,6 +10,10 @@ const uint8_t HEIGHT_DEPTH1 = 1; // Depth of 1 sides can be rotated
 const uint8_t HEIGHT_DEPTH2 = 2; // Depth of 2 sides can be rotated
 const uint8_t HEIGHT_DEPTH3 = 3; // Depth of 3 sides can be rotated
 const uint8_t HEIGHT_DEPTH4 = 4; // Depth of 3 sides can be rotated
+const uint8_t ROTATE_QTURN  = 0b000000;
+const uint8_t ROTATE_HTURN  = 0b100000;
+const uint8_t ROTATE_CW     = 0b000000;
+const uint8_t ROTATE_CCW    = 0b010000;
 
 // Axes Descriptors:
 const uint8_t AXIS_DESCRIPTOR_BITLENGTH = 2;
@@ -138,7 +144,7 @@ void setup() {
   const String startMessage = "Arduino Start Message";
   if(!SERIAL_MONITOR_TEST){
     serialSend(startMessage);
-    delay(500);
+    delay(10);
   }
 }
 
@@ -154,9 +160,22 @@ void serialEvent(){
   // serialSend(data, numBytes);
   for(uint8_t move : data){
   }
-  setHeight(4);
-  rotate(0b110000);
+  setHeight(0);
   flip();
+  rotate(ROTATE_CW + ROTATE_QTURN);
+  setHeight(1);
+  rotate(ROTATE_CW + ROTATE_QTURN);
+  setHeight(2);
+  rotate(ROTATE_CW + ROTATE_QTURN);
+  setHeight(3);
+  rotate(ROTATE_CW + ROTATE_QTURN);
+  setHeight(4);
+  rotate(ROTATE_CW + ROTATE_QTURN);
+  flip();
+  rotate(ROTATE_CW + ROTATE_HTURN);
+  rotate(ROTATE_CCW + ROTATE_HTURN);
+  rotate(ROTATE_CW + ROTATE_QTURN);
+  rotate(ROTATE_CCW + ROTATE_QTURN);
 }
 
 /* ======================== ROTATION PARAMETER ========================
@@ -166,10 +185,12 @@ void serialEvent(){
   m4 determines turn direction, is fed directly into DIR pin, 0 for CW, 1 for CCW
 */
 void rotate(uint8_t rotation){
-
+  #ifdef DEBUG
+  uint8_t startOrientation = orientation;
+  #endif
 
   if(height == HEIGHT_DEPTH4){ // if the whole cube is being rotated, then the orientation is changing
-    if(rotation & MOVE_MAG_BITMASK == 1){ // 180 degree turn, means the secondary axis is being flipped
+    if((rotation & MOVE_MAG_BITMASK) == ROTATE_HTURN){ // 180 degree turn, means the secondary axis is being flipped
       orientation ^= REORIENT_180_ROTATION_BITMASK;
     }else{ // 90 degree turn, the secondary axis changes to the remaining axis
       /*
@@ -186,24 +207,41 @@ void rotate(uint8_t rotation){
 
         When calculating the new front face, the following code will perform the above calculations, but they may appear differently to optimize computation time
       */
-      orientation = orientation & ORIENT_TO_UP_FACE_BITMASK + //preserve upward face
-                    3 - (orientation + (orientation >> FACE_DESCRIPTOR_BITLENGTH)) & FACE_TO_AXIS_BITMASK + // insert new axis of front face;
-                    ((((orientation >> 2) ^ (orientation >> 1)) & ~(orientation << 1)) ^ (orientation << 2) ^ orientation ^ (orientation >> 1) ^ (orientation >> 3) ^ (rotation >> 2)) && 0b100; // compute whether new face is primary or secondary
+      orientation = (orientation & ORIENT_TO_UP_FACE_BITMASK) + //preserve upward face
+                    (3 - ((orientation + (orientation >> FACE_DESCRIPTOR_BITLENGTH)) & FACE_TO_AXIS_BITMASK)) + // insert new axis of front face;
+                    (((((orientation >> 2) ^ (orientation >> 1)) & ~(orientation << 1)) ^ (orientation << 2) ^ orientation ^ (orientation >> 1) ^ (orientation >> 3) ^ (rotation >> 2)) & 0b100); // compute whether new face is primary or secondary
     }
   }
-  serialSend("ROTATE (depth = " + String(height) + ((rotation & MOVE_MAG_BITMASK) == MOVE_MAG_BITMASK ? ", HALF " : ", QUARTER ") + ((rotation & MOVE_DIR_BITMASK) == MOVE_DIR_BITMASK ? "CCW)" : "CW)"));
+
+  #ifdef DEBUG
+  serialSendDebug("ROTATE (depth = " + String(height) + ((rotation & MOVE_MAG_BITMASK) == MOVE_MAG_BITMASK ? ", HALF " : ", QUARTER ") + ((rotation & MOVE_DIR_BITMASK) == MOVE_DIR_BITMASK ? "CCW)" : "CW)"), startOrientation);
+  #endif
 }
 void flip(){
+  #ifdef DEBUG
+  uint8_t startOrientation = orientation;
+  #endif
+
   if(height == 0){ //front and up facing sides swap
     orientation = (orientation & ORIENT_TO_FRONT_FACE_BITMASK) << FACE_DESCRIPTOR_BITLENGTH + (orientation >> 3);
   }else{ //front facing side switches to the opposite side, up remains same
     orientation ^= REORIENT_180_ROTATION_BITMASK;
   }
-  serialSend("FLIP");
+
+  #ifdef DEBUG
+  serialSendDebug("FLIP", startOrientation);
+  #endif
 }
 void setHeight(uint8_t newHeight){
+  #ifdef DEBUG
+  uint8_t startOrientation = orientation;
+  #endif
+
   height = newHeight;
-  serialSend("HEIGHT: " + String(newHeight));
+
+  #ifdef DEBUG
+  serialSendDebug("HEIGHT: " + String(height), startOrientation);
+  #endif
 }
 
 void loop(){}
@@ -216,3 +254,15 @@ void serialSend(uint8_t *data, uint8_t &length){
   Serial.write(length);
   Serial.write(data, length);
 }
+void serialSend(uint8_t &data){
+  Serial.write(1);
+  Serial.write(data);
+}
+#ifdef DEBUG
+void serialSendDebug(const String &str, uint8_t &startOrientation){
+  serialSend("DEBUG :\t" + String(startOrientation) + "\t->\t" + String(orientation) + "\t: " + str);
+}
+void serialSendDebug(const String &str){
+  serialSend("DEBUG : " + str);
+}
+#endif
