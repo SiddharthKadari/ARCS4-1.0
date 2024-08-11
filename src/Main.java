@@ -1,37 +1,41 @@
 import java.io.*;
 import java.util.*;
+import java.util.Arrays;
 import java.util.concurrent.TimeoutException;
 
 import threephase.FullCube;
 import threephase.Search;
 import threephase.Tools;
 
-import org.bytedeco.javacpp.BytePointer;
-import org.bytedeco.javacv.*;
 import org.bytedeco.opencv.opencv_core.*;
-
-// import org.bytedeco.opencv.global.opencv_imgproc;
+import org.bytedeco.opencv.opencv_videoio.*;
+import static org.bytedeco.opencv.global.opencv_core.*;
+import static org.bytedeco.opencv.global.opencv_videoio.*;
+import static org.bytedeco.opencv.global.opencv_imgproc.*;
 
 
 public class Main {
 
 	public static final Stopwatch stopWatch = new Stopwatch();
 
-	private static final boolean USING_SOLVER = true;
-	private static final boolean USING_ARDUINO = true;
-	private static final boolean USING_WEBCAM = false;
+	private static final boolean USING_SOLVER = false;
+	private static final boolean USING_ARDUINO = false;
+	private static final boolean USING_WEBCAM = true;
 
 	private static final boolean TESTING_SOLVER = false && USING_SOLVER;
 	private static final boolean TESTING_ARDUINO = false && USING_ARDUINO;
-	private static final boolean TESTING_WEBCAM = false && USING_WEBCAM;
-	private static final boolean TESTING_SOLVER_ARDUINO = true && USING_SOLVER && USING_ARDUINO;
-	
+	private static final boolean TESTING_WEBCAM = true && USING_WEBCAM;
+	private static final boolean TESTING_SOLVER_ARDUINO = false && USING_SOLVER && USING_ARDUINO;
+
+	static {
+		System.setProperty("org.bytedeco.openblas.load", "mkl");
+	}
 
 	public static void main(String[] args) throws TimeoutException {
 		printStatusUpdate("PROGRAM START");
 
 		SerialDevice arduino;
-		OpenCVFrameGrabber grabber;
+		VideoCapture capture;
 
 		if(USING_SOLVER){
 			printStatusUpdate(">>> INITIALIZE SOLVER");
@@ -74,13 +78,18 @@ public class Main {
 			printStatusUpdate(">>> CONNECT WEBCAM");
 
 			System.out.println("Connecting to webcam...");
-			grabber = new OpenCVFrameGrabber(0); // 0 for default camera
+			capture = new VideoCapture(0);
+			capture.set(CAP_PROP_FRAME_WIDTH, 640);
+			capture.set(CAP_PROP_FRAME_HEIGHT, 480);
 
-			try{
-				grabber.start();
-			}catch(Exception e){
-				e.printStackTrace();
+			if (!capture.isOpened()) {
+				System.out.println("Error opening webcam");
+				capture.close();
+				capture.release();
+				return;
 			}
+
+			delay(100);
 
 			printStatusUpdate("<<< WEBCAM CONNECTED");
 		}
@@ -108,42 +117,18 @@ public class Main {
 		}
 	
 		if(TESTING_WEBCAM){
-			CanvasFrame canvasFrame = new CanvasFrame("Webcam");
-			OpenCVFrameConverter.ToMat converter = new OpenCVFrameConverter.ToMat();
+			Mat frame = new Mat();
+			if (capture.read(frame)) {
+				byte[] bgr = new byte[frame.channels()];
+				int[] bgrUnsigned = new int[frame.channels()];
 
-			while (canvasFrame.isVisible()) {
-				stopWatch.reset();
-				stopWatch.start();
-				Frame frame = null;
-				try{
-					frame = grabber.grab();
-				}catch(Exception e){
-					e.printStackTrace();
+				//get pixels with: frame.ptr(x, y).get(rgb);, rgb will be stored in array pixels
+				frame.ptr(frame.rows()/2, frame.cols()/2).get(bgr);
+				for(int i = 0; i < 3; i++){
+					bgrUnsigned[i] = bgr[i] & 0xFF;
 				}
-				Mat mat = converter.convert(frame);
-				
-				// Access pixel data
-				BytePointer data = mat.data();
-
-				int width = mat.cols();
-				int height = mat.rows();
-				int channels = mat.channels();
-
-				int[] rgb = getRGBAt(data, width/2, height/2, width, height);
-				
-				System.out.printf("%d\t%d\t%d\t%f\n", rgb[0], rgb[1], rgb[2], stopWatch.millis());
-
-				canvasFrame.showImage(converter.convert(mat));
+				System.out.println(Arrays.toString(bgrUnsigned));
 			}
-			
-			try{
-				grabber.stop();
-				grabber.close();
-				converter.close();
-			}catch(Exception e){
-				e.printStackTrace();
-			}
-			canvasFrame.dispose();
 		}
 
 
@@ -179,17 +164,16 @@ public class Main {
 
 
 		printStatusUpdate("PROGRAM CLEANUP");
-		delay(1000);
+		delay(10);
 		if(USING_ARDUINO){
 			arduino.printAllMessagesDebug();
 			arduino.closeDevice();
 		}
+		if(USING_WEBCAM){
+			capture.close();
+			capture.release();
+		}
 		printStatusUpdate("MAIN TERMINATED");
-	}
-
-	private static int[] getRGBAt(BytePointer data, int x, int y, int w, int h){
-		int ind = y * w * 3 + x * 3;
-		return new int[]{data.get(ind + 2)&0xFF,data.get(ind + 1)&0xFF,data.get(ind)&0xFF};
 	}
 
 	public static void printByteArrayAsString(byte[] arr){
