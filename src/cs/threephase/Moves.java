@@ -200,7 +200,7 @@ class Moves {
 
 	/*
 	 * char 1: Side to be turned ('U', 'R', 'F', 'D', 'L', or 'B')
-	 * char 2/3: w indicates the 2 sides on that side are being turned (ex: U2 means the upper half of the cube is being rotated 180°)
+	 * char 2/3: w indicates the 2 sides on that side are being turned (ex: Uw2 means the upper half of the cube is being rotated 180°)
 	 * char 2/3: ' ', '\'', and '2' mark CW, CCW, and 180° turns respectively
 	 */
 	public static final String[] move2str = {"U  ", "U2 ", "U' ", "R  ", "R2 ", "R' ", "F  ", "F2 ", "F' ", 

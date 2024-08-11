@@ -351,6 +351,17 @@ public class FullCube implements Comparable<FullCube> {
 		getCenter().move(m);
 		getCorner().move(m % 18);	
 	}
+
+	String execMoveBuffer = "";
+	public void execMove(int m){
+		execMoveBuffer += move2str[m] + " ";
+		getEdge().move(m);
+		getCenter().move(m);
+		getCorner().move(m % 18);	
+	}
+	public String getExecMoveBuffer(){
+		return execMoveBuffer;
+	}
 	
 	EdgeCube getEdge() {
 		while (edgeAvail < moveLength) {

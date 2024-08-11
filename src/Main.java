@@ -10,7 +10,7 @@ import org.bytedeco.javacpp.BytePointer;
 import org.bytedeco.javacv.*;
 import org.bytedeco.opencv.opencv_core.*;
 
-import org.bytedeco.opencv.global.opencv_imgproc;
+// import org.bytedeco.opencv.global.opencv_imgproc;
 
 
 public class Main {
@@ -18,10 +18,10 @@ public class Main {
 	public static final Stopwatch stopWatch = new Stopwatch();
 
 	private static final boolean USING_SOLVER = true;
-	private static final boolean USING_ARDUINO = false;
+	private static final boolean USING_ARDUINO = true;
 	private static final boolean USING_WEBCAM = false;
 
-	private static final boolean TESTING_SOLVER = true && USING_SOLVER;
+	private static final boolean TESTING_SOLVER = false && USING_SOLVER;
 	private static final boolean TESTING_ARDUINO = false && USING_ARDUINO;
 	private static final boolean TESTING_WEBCAM = false && USING_WEBCAM;
 	private static final boolean TESTING_SOLVER_ARDUINO = true && USING_SOLVER && USING_ARDUINO;
@@ -88,8 +88,14 @@ public class Main {
 		printStatusUpdate(" ## SYSTEM INIT COMPLETE ##");
 
 		if(TESTING_SOLVER){
+			Random r = new Random(System.nanoTime());
 			FullCube cube = new FullCube();
+			for(int i = 0; i < 4; i++){
+				int x = r.nextInt(36);
+				cube.execMove(x);
+			}
 			System.out.println(cube);
+			System.out.println(cube.getExecMoveBuffer());
 		}
 
 		if(TESTING_ARDUINO){
@@ -143,15 +149,21 @@ public class Main {
 
 
 		if(TESTING_SOLVER_ARDUINO){
-			FullCube cube = new FullCube(new Random(System.nanoTime()));
-
+			Random r = new Random(System.nanoTime());
+			FullCube cube = new FullCube();
+			for(int i = 0; i < 4; i++){
+				int x = r.nextInt(36);
+				cube.execMove(x);
+			}
+			System.out.println(cube);
+			System.out.println("Scramble Sequence: " + cube.getExecMoveBuffer());
 			Search search = new Search();
 			search.with_rotation = false;
 
 			Byte[] sol = search.byteSolve(cube);
 			String solStr = search.solve(cube);
 
-			System.out.println("Solve Sequence (Length = " + sol.length + "): ");
+			System.out.println("\nSolve Sequence (Length = " + sol.length + "): ");
 			for(int i = 0; i < sol.length; i++){
 				System.out.print(sol[i].toString() + " ");
 			}
