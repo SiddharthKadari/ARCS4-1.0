@@ -14,17 +14,17 @@
 	You should have received a copy of the GNU General Public License
 	along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package cs.threephase;
+package threephase;
 
-import static cs.threephase.Moves.*;
-import static cs.threephase.Util.*;
-import static cs.threephase.Center2.rlmv;
-import static cs.threephase.Center2.ctmv;
-import static cs.threephase.Center2.ctprun;
-import static cs.threephase.Center1.symmult;
-import static cs.threephase.Center1.ctsmv;
-import static cs.threephase.Center1.csprun;
-import static cs.threephase.Center1.symmove;
+import static threephase.Center2.ctmv;
+import static threephase.Center2.ctprun;
+import static threephase.Center2.rlmv;
+import static threephase.Moves.*;
+import static threephase.Util.*;
+import static threephase.Center1.symmult;
+import static threephase.Center1.ctsmv;
+import static threephase.Center1.csprun;
+import static threephase.Center1.symmove;
 
 import java.util.*;
 

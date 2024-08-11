@@ -76,14 +76,14 @@ Center Cubies:
 	 */
 
 
-package cs.threephase;
+package threephase;
 
 import java.util.*;
 
-import static cs.threephase.Moves.*;
-import static cs.threephase.Center1.symmove;
-import static cs.threephase.Center1.symmult;
-import static cs.threephase.Center1.syminv;
+import static threephase.Center1.symmove;
+import static threephase.Center1.symmult;
+import static threephase.Moves.*;
+import static threephase.Center1.syminv;
 
 public class FullCube implements Comparable<FullCube> {
 

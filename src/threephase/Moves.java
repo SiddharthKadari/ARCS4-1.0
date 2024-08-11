@@ -1,4 +1,4 @@
-package cs.threephase;
+package threephase;
 
 class Moves {
 	static final byte U1 = 0;

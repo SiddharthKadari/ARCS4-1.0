@@ -1,4 +1,4 @@
-package cs.threephase;
+package threephase;
 import java.io.*;
 import java.util.*;
 
@@ -24,13 +24,13 @@ public class test {
 
 		try {
 			DataInputStream dis = new DataInputStream(new BufferedInputStream(new FileInputStream("threephase.data")));
-			cs.threephase.Tools.initFrom(dis);
+			threephase.Tools.initFrom(dis);
 			dis.close();
 		} catch (IOException e) {
 			e.printStackTrace();
 			try {
 				DataOutputStream dos = new DataOutputStream(new BufferedOutputStream(new FileOutputStream("threephase.data")));
-				cs.threephase.Tools.saveTo(dos);
+				threephase.Tools.saveTo(dos);
 				dos.close();
 			} catch (IOException e2) {
 				e2.printStackTrace();

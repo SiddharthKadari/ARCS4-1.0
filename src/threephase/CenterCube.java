@@ -1,7 +1,8 @@
-package cs.threephase;
+package threephase;
+
+import static threephase.Util.*;
 
 import java.util.*;
-import static cs.threephase.Util.*;
 
 class CenterCube {
 

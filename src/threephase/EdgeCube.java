@@ -1,9 +1,9 @@
-package cs.threephase;
+package threephase;
 
 import java.util.*;
 
-import static cs.threephase.Moves.*;
-import static cs.threephase.Util.*;
+import static threephase.Moves.*;
+import static threephase.Util.*;
 
 class EdgeCube {
 

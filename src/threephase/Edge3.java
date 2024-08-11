@@ -1,4 +1,4 @@
-package cs.threephase;
+package threephase;
 
 import java.util.Arrays;
 

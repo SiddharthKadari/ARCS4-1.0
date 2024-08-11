@@ -2,9 +2,9 @@ import java.io.*;
 import java.util.*;
 import java.util.concurrent.TimeoutException;
 
-import cs.threephase.FullCube;
-import cs.threephase.Search;
-import cs.threephase.Tools;
+import threephase.FullCube;
+import threephase.Search;
+import threephase.Tools;
 
 import org.bytedeco.javacpp.BytePointer;
 import org.bytedeco.javacv.*;

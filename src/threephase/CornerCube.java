@@ -1,6 +1,7 @@
-package cs.threephase;
+package threephase;
 
-import static cs.threephase.Moves.*;
+import static threephase.Moves.*;
+
 import java.util.Random;
 
 class CornerCube {

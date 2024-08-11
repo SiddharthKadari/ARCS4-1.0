@@ -1,5 +1,5 @@
-package cs.threephase;
-import static cs.threephase.Moves.*;
+package threephase;
+import static threephase.Moves.*;
 
 class Util {
 
