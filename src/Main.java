@@ -1,6 +1,5 @@
 import java.io.*;
 import java.util.*;
-import java.util.Arrays;
 import java.util.concurrent.TimeoutException;
 
 import threephase.FullCube;
@@ -9,13 +8,10 @@ import threephase.Tools;
 
 import org.bytedeco.javacv.CanvasFrame;
 import org.bytedeco.javacv.OpenCVFrameConverter;
-import org.bytedeco.librealsense.frame;
 import org.bytedeco.opencv.opencv_core.*;
 import org.bytedeco.opencv.opencv_videoio.*;
 import static org.bytedeco.opencv.global.opencv_core.*;
 import static org.bytedeco.opencv.global.opencv_videoio.*;
-import static org.bytedeco.opencv.global.opencv_imgproc.*;
-
 
 public class Main {
 
