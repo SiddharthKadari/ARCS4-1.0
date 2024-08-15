@@ -18,11 +18,6 @@ public abstract class SerialDevice {
 		port.setComPortParameters(baud, 8, 1, 0);
 		port.setComPortTimeouts(SerialPort.TIMEOUT_WRITE_BLOCKING, 0, 0);
 
-		if(!port.openPort(10)){
-			throw new IOException("Serial Port " + portDescriptor + " not Available.");
-		}
-
-
 		port.addDataListener(new SerialPortDataListener() { //Listener for data recieved
 			@Override
 			public int getListeningEvents() {
@@ -52,7 +47,10 @@ public abstract class SerialDevice {
 			}
 		});
 
-		Main.delay(1000);
+		if(!port.openPort(10)){ //this line resets the arduino
+			throw new IOException("Serial Port " + portDescriptor + " not Available.");
+		}
+
 	}
 
 	public boolean isPortOpen(){

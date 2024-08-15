@@ -173,11 +173,10 @@ uint8_t orientation = ORIENT_UF;
 bool flipper_position = 0; //0 is the starting config, 1 is the opposite config
 
 // the setup function runs once when you press reset or power the board
-const bool SERIAL_USB_COMMS = false; // make this true to use the external computer system, false to use the arduino serial monitor
-const bool SOLVE_MODE = false; // make this true to run the primary solve sequence
+const bool SERIAL_USB_COMMS = true; // make this true to use the external computer system, false to use the arduino serial monitor
+const bool SOLVE_MODE = true; // make this true to run the primary solve sequence
 void setup() {
   // initialize digital pin LED_BUILTIN as an output.
-  pinMode(LED_BUILTIN, OUTPUT);
   Serial.begin(115200);
   delay(10);
 
@@ -207,9 +206,12 @@ void setup() {
   }
 }
 
-void loop(){}
+void loop(){
+  if(Serial.available())
+    messageRecieved();
+}
 
-void serialEvent(){
+void messageRecieved(){
 
   uint8_t numBytes = Serial.read();
 

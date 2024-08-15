@@ -17,14 +17,14 @@ public class Main {
 
 	public static final Stopwatch stopWatch = new Stopwatch();
 
-	private static final boolean USING_SOLVER = false;
-	private static final boolean USING_ARDUINO = false;
-	private static final boolean USING_WEBCAM = true;
+	private static final boolean USING_SOLVER = true;
+	private static final boolean USING_ARDUINO = true;
+	private static final boolean USING_WEBCAM = false;
 
 	private static final boolean TESTING_SOLVER = false && USING_SOLVER;
 	private static final boolean TESTING_ARDUINO = false && USING_ARDUINO;
-	private static final boolean TESTING_WEBCAM = true && USING_WEBCAM;
-	private static final boolean TESTING_SOLVER_ARDUINO = false && USING_SOLVER && USING_ARDUINO;
+	private static final boolean TESTING_WEBCAM = false && USING_WEBCAM;
+	private static final boolean TESTING_SOLVER_ARDUINO = true && USING_SOLVER && USING_ARDUINO;
 
 	private static final int CAMERA_WIDTH = 640;
 	private static final int CAMERA_HEIGHT = 480;
@@ -58,7 +58,6 @@ public class Main {
 				arduino = new SerialDevice("tty.usbmodem1101", 115200){
 					@Override
 					public void messageReceived(byte[] msg){
-						Main.stopWatch.stop();
 					}
 				};
 			} catch (IOException e) {
@@ -69,7 +68,7 @@ public class Main {
 			for(int i = 0; arduino.numMessagesReceived() == 0; i++){
 				delay(100);
 	
-				//5 second timeout
+				//10 second timeout
 				if(i == 10*10){
 					throw new TimeoutException("Arduino failed to connect, try again");
 				}
