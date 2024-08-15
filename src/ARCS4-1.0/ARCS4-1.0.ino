@@ -22,11 +22,13 @@ const long elevator_steps_per_rev = 200;
 const long rotator_steps_per_rev = 200;
 const long flipper_steps_per_rev = 200;
 
-const long elevator_positions[] = { 0.0   * elevator_steps_per_rev, 
-                                    0.2   * elevator_steps_per_rev, 
-                                    0.4   * elevator_steps_per_rev, 
-                                    0.6   * elevator_steps_per_rev, 
-                                    0.8   * elevator_steps_per_rev};
+const uint8_t elevator_pinion_num_teeth = 24;
+const double elevator_mm_per_revolution = 79.79664;
+const long elevator_positions[] = { 00.0 / elevator_mm_per_revolution * elevator_steps_per_rev, 
+                                    50.0 / elevator_mm_per_revolution * elevator_steps_per_rev, 
+                                    65.0 / elevator_mm_per_revolution * elevator_steps_per_rev, 
+                                    80.0 / elevator_mm_per_revolution * elevator_steps_per_rev, 
+                                    95.0 / elevator_mm_per_revolution * elevator_steps_per_rev};
 const long rotator_quarter_turn = rotator_steps_per_rev / 4;
 const long rotator_half_turn =    rotator_steps_per_rev / 2;
 const long flipper_opposing_position = flipper_steps_per_rev / 4;
