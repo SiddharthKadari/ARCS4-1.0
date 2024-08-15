@@ -1,8 +1,35 @@
 #include <string.h>
+#include "AccelStepper.h"
 
 #define DEBUG
 
 //======================== ROBOT STATE AND CONTROL CONSTANTS ========================
+#define ELEVATOR_STEP_PIN   0
+#define ELEVATOR_DIR_PIN    1
+#define ELEVATOR_ENA_PIN    2
+#define ROTATOR_STEP_PIN    22
+#define ROTATOR_DIR_PIN     23
+#define ROTATOR_ENA_PIN     24
+#define FLIPPER_STEP_PIN    0
+#define FLIPPER_DIR_PIN     1
+#define FLIPPER_ENA_PIN     2
+
+AccelStepper elevator =  AccelStepper(AccelStepper::DRIVER, ELEVATOR_STEP_PIN, ELEVATOR_DIR_PIN);
+AccelStepper rotator =  AccelStepper(AccelStepper::DRIVER, ROTATOR_STEP_PIN, ROTATOR_DIR_PIN);
+AccelStepper flipper =  AccelStepper(AccelStepper::DRIVER, FLIPPER_STEP_PIN, FLIPPER_DIR_PIN);
+
+const long elevator_steps_per_rev = 200;
+const long rotator_steps_per_rev = 200;
+const long flipper_steps_per_rev = 200;
+
+const long elevator_positions[] = { 0.0   * elevator_steps_per_rev, 
+                                    0.2   * elevator_steps_per_rev, 
+                                    0.4   * elevator_steps_per_rev, 
+                                    0.6   * elevator_steps_per_rev, 
+                                    0.8   * elevator_steps_per_rev};
+const long rotator_quarter_turn = rotator_steps_per_rev / 4;
+const long rotator_half_turn =    rotator_steps_per_rev / 2;
+const long flipper_opposing_position = flipper_steps_per_rev / 4;
 
 // Robot State Descriptors
 const uint8_t HEIGHT_FLIP = 0; // Elevator fully lowered, cube can flip
@@ -141,21 +168,44 @@ const uint8_t MOVE_FACE_BITMASK   = 0b00000111;
 // ======================== System State Variables ========================
 uint8_t height = 0;
 uint8_t orientation = ORIENT_UF;
+bool flipper_position = 0; //0 is the starting config, 1 is the opposite config
 
 // the setup function runs once when you press reset or power the board
-const bool SERIAL_MONITOR_TEST = false; // make this true to test the arduino using the serial monitor, not the external computer system
-const bool SOLVE_MODE = true; // make this true to run the primary solve sequence
+const bool SERIAL_USB_COMMS = false; // make this true to use the external computer system, false to use the arduino serial monitor
+const bool SOLVE_MODE = false; // make this true to run the primary solve sequence
 void setup() {
   // initialize digital pin LED_BUILTIN as an output.
   pinMode(LED_BUILTIN, OUTPUT);
   Serial.begin(115200);
-  delay(1000);
+  delay(10);
+
+  elevator.setEnablePin(ELEVATOR_ENA_PIN);
+  elevator.setPinsInverted(true, false, true);
+  elevator.enableOutputs();
+  rotator.setEnablePin(ROTATOR_ENA_PIN);
+  rotator.setPinsInverted(false, false, true);
+  rotator.enableOutputs();
+  flipper.setEnablePin(FLIPPER_ENA_PIN);
+  flipper.setPinsInverted(true, false, true);
+  flipper.enableOutputs();
+
+  elevator.setMaxSpeed(elevator_steps_per_rev);
+  elevator.setAcceleration(elevator_steps_per_rev * 100);
+  rotator.setMaxSpeed(rotator_steps_per_rev);
+  rotator.setAcceleration(rotator_steps_per_rev * 100);
+  flipper.setMaxSpeed(flipper_steps_per_rev);
+  flipper.setAcceleration(flipper_steps_per_rev * 100);
+
+
+  delay(800);
   const String startMessage = "Arduino Start Message";
-  if(!SERIAL_MONITOR_TEST){
+  if(SERIAL_USB_COMMS){
     serialSend(startMessage);
     delay(10);
   }
 }
+
+void loop(){}
 
 void serialEvent(){
 
@@ -167,16 +217,18 @@ void serialEvent(){
 
   //DO STUFF WITH data
   // serialSend(data, numBytes);
-  for(uint8_t move : data){
-    uint8_t upwardFaceXorMove = orientation >> FACE_DESCRIPTOR_BITLENGTH ^ move;
-    if(upwardFaceXorMove & FACE_TO_AXIS_BITMASK){// if the primary axis is not the target axis
-      if((orientation ^ move) & FACE_TO_AXIS_BITMASK){// if the secondary axis is not the target axis
-        executeMoveTertiaryAxisIsTarget(move);
-      }else{// if the secondary axis is the target axis
-        executeMoveSecondaryAxisIsTarget(move);
+  if(SOLVE_MODE){
+    for(uint8_t move : data){
+      uint8_t upwardFaceXorMove = orientation >> FACE_DESCRIPTOR_BITLENGTH ^ move;
+      if(upwardFaceXorMove & FACE_TO_AXIS_BITMASK){// if the primary axis is not the target axis
+        if((orientation ^ move) & FACE_TO_AXIS_BITMASK){// if the secondary axis is not the target axis
+          executeMoveTertiaryAxisIsTarget(move);
+        }else{// if the secondary axis is the target axis
+          executeMoveSecondaryAxisIsTarget(move);
+        }
+      }else{ //if the primary axis is already the target axis
+        executeMovePrimaryAxisIsTarget(move, upwardFaceXorMove & FACE_TO_PYSY_BITMASK);
       }
-    }else{ //if the primary axis is already the target axis
-      executeMovePrimaryAxisIsTarget(move, upwardFaceXorMove & FACE_TO_PYSY_BITMASK);
     }
   }
 }
@@ -193,7 +245,7 @@ void executeMoveSecondaryAxisIsTarget(uint8_t move){
 void executeMoveTertiaryAxisIsTarget(uint8_t move){
   setHeight(HEIGHT_DEPTH4);
 
-  rotate((((((orientation >> 2) ^ (orientation >> 1)) & ~(orientation << 1)) ^ (orientation << 2) ^ orientation ^ (orientation >> 1) ^ (orientation >> 3) ^ move) & FACE_TO_PYSY_BITMASK) << 2);
+  rotate((((((orientation >> 2) ^ (orientation >> 1)) & ~(orientation << 1)) ^ (orientation << 2) ^ orientation ^ (orientation >> 1) ^ (orientation >> 3) ^ move) & FACE_TO_PYSY_BITMASK) << 2, 0);
 
   executeMoveSecondaryAxisIsTarget(move);
 }
@@ -210,39 +262,6 @@ void executeMoveTertiaryAxisIsTarget(uint8_t move){
 
   If the currently facing upward face does not match the intended turn face according to m2, then the turn direction will be inverted (CW <-> CCW)
 */
-void rotate(uint8_t rotation){
-  #ifdef DEBUG
-  uint8_t startOrientation = orientation;
-  #endif
-
-  if(height == HEIGHT_DEPTH4 || (((orientation >> FACE_DESCRIPTOR_BITLENGTH) ^ rotation) & FACE_TO_PYSY_BITMASK)){ // if the whole cube is being rotated, or if the intended turn face is opposite from the currently upward facing face, then the orientation is changing
-    if(rotation & MOVE_MAG_BITMASK){ // 180 degree turn, means the secondary axis is being flipped
-      orientation ^= REORIENT_180_ROTATION_BITMASK;
-    }else{ // 90 degree turn, the secondary axis changes to the remaining axis
-      /*
-        When a 90 degree turn occurrs, the upward facing face remains the same, but the front facing face changes
-        To calculate the new front facing face, we can apply the following:
-        assume orientation is formatted as follows:
-        orientation = m5m4m3m2m1m0
-        dir = the direction defined by the rotation parameter
-
-        To calculate the new axis:
-          newAxis = thirdAxis = 3 - (orientation + (orientation >> FACE_DESCRIPTOR_BITLENGTH)) & FACE_TO_AXIS_BITMASK;
-        To calculate if the new face is the primary or secondary face:
-          newPriSec = ((m4 ^ m3) & ~m1) ^ m0 ^ m2 ^ m3 ^ m5 ^ dir;
-
-        When calculating the new front face, the following code will perform the above calculations, but they may appear differently to optimize computation time
-      */
-      orientation = (orientation & ORIENT_TO_UP_FACE_BITMASK) + //preserve upward face
-                    (3 - ((orientation + (orientation >> FACE_DESCRIPTOR_BITLENGTH)) & FACE_TO_AXIS_BITMASK)) + // insert new axis of front face;
-                    (((((orientation >> 2) ^ (orientation >> 1)) & ~(orientation << 1)) ^ (orientation << 2) ^ orientation ^ (orientation >> 1) ^ (orientation >> 3) ^ (rotation >> 2)) & FACE_TO_PYSY_BITMASK); // compute whether new face is primary or secondary
-    }
-  }
-
-  #ifdef DEBUG
-  serialSendDebug("ROTATE (depth = " + String(height) + ((rotation & MOVE_MAG_BITMASK) == MOVE_MAG_BITMASK ? ", HALF " : ", QUARTER ") + ((rotation & MOVE_DIR_BITMASK) == MOVE_DIR_BITMASK ? "CCW " : "CW ") + (rotation & FACE_TO_PYSY_BITMASK ? "SECONDARY)" : "PRIMARY)"), startOrientation);
-  #endif
-}
 // isPrimaryAxisInverted is non-zero if the intended turn face is opposite from the currently upward facing face
 // isPrimaryAxisInverted = (((orientation >> FACE_DESCRIPTOR_BITLENGTH) ^ rotation) & FACE_TO_PYSY_BITMASK)
 void rotate(uint8_t rotation, uint8_t isPrimaryAxisInverted){
@@ -274,6 +293,9 @@ void rotate(uint8_t rotation, uint8_t isPrimaryAxisInverted){
     }
   }
 
+  rotator.move((((rotation >> 4) & 1) * 2 - 1) * ((rotation >> 5) + 1) * rotator_quarter_turn);
+  rotator.runToPosition();
+
   #ifdef DEBUG
   serialSendDebug("ROTATE (depth = " + String(height) + ((rotation & MOVE_MAG_BITMASK) == MOVE_MAG_BITMASK ? ", HALF " : ", QUARTER ") + ((rotation & MOVE_DIR_BITMASK) == MOVE_DIR_BITMASK ? "CCW " : "CW ") + (rotation & FACE_TO_PYSY_BITMASK ? "SECONDARY)" : "PRIMARY)"), startOrientation);
   #endif
@@ -289,6 +311,9 @@ void flip(){
     orientation ^= REORIENT_180_ROTATION_BITMASK;
   }
 
+  flipper_position = !flipper_position;
+  flipper.runToNewPosition(flipper_opposing_position * flipper_position);
+
   #ifdef DEBUG
   serialSendDebug("FLIP", startOrientation);
   #endif
@@ -299,13 +324,12 @@ void setHeight(uint8_t newHeight){
   #endif
 
   height = newHeight;
+  elevator.runToNewPosition(elevator_positions[height]);
 
   #ifdef DEBUG
   serialSendDebug("HEIGHT: " + String(height), startOrientation);
   #endif
 }
-
-void loop(){}
 
 void serialSend(const String &str){
   Serial.write(str.length());
