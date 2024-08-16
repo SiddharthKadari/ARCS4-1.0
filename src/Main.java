@@ -203,11 +203,6 @@ public class Main {
 			arduino.send(sol);
 		}
 
-
-
-
-
-
 		printStatusUpdate("PROGRAM CLEANUP");
 		delay(10);
 		if(USING_ARDUINO){

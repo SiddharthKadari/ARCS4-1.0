@@ -2,36 +2,43 @@
 #include "AccelStepper.h"
 
 #define DEBUG
+#define USING_HARDWARE
+#define USING_SERIAL
+#define SOLVE_MODE
 
 //======================== ROBOT STATE AND CONTROL CONSTANTS ========================
-#define ELEVATOR_STEP_PIN   0
-#define ELEVATOR_DIR_PIN    1
-#define ELEVATOR_ENA_PIN    2
-#define ROTATOR_STEP_PIN    22
-#define ROTATOR_DIR_PIN     23
-#define ROTATOR_ENA_PIN     24
-#define FLIPPER_STEP_PIN    0
-#define FLIPPER_DIR_PIN     1
-#define FLIPPER_ENA_PIN     2
+#ifdef USING_HARDWARE
+  #define ELEVATOR_STEP_PIN   0
+  #define ELEVATOR_DIR_PIN    1
+  #define ELEVATOR_ENA_PIN    2
+  #define ROTATOR_STEP_PIN    22
+  #define ROTATOR_DIR_PIN     23
+  #define ROTATOR_ENA_PIN     24
+  #define FLIPPER_STEP_PIN    0
+  #define FLIPPER_DIR_PIN     1
+  #define FLIPPER_ENA_PIN     2
 
-AccelStepper elevator =  AccelStepper(AccelStepper::DRIVER, ELEVATOR_STEP_PIN, ELEVATOR_DIR_PIN);
-AccelStepper rotator =  AccelStepper(AccelStepper::DRIVER, ROTATOR_STEP_PIN, ROTATOR_DIR_PIN);
-AccelStepper flipper =  AccelStepper(AccelStepper::DRIVER, FLIPPER_STEP_PIN, FLIPPER_DIR_PIN);
+  AccelStepper elevator =  AccelStepper(AccelStepper::DRIVER, ELEVATOR_STEP_PIN, ELEVATOR_DIR_PIN);
+  AccelStepper rotator =  AccelStepper(AccelStepper::DRIVER, ROTATOR_STEP_PIN, ROTATOR_DIR_PIN);
+  AccelStepper flipper =  AccelStepper(AccelStepper::DRIVER, FLIPPER_STEP_PIN, FLIPPER_DIR_PIN);
 
-const long elevator_steps_per_rev = 200;
-const long rotator_steps_per_rev = 200;
-const long flipper_steps_per_rev = 200;
+  const long elevator_steps_per_rev = 200;
+  const long rotator_steps_per_rev = 200;
+  const long flipper_steps_per_rev = 200;
 
-const uint8_t elevator_pinion_num_teeth = 24;
-const double elevator_mm_per_revolution = 79.79664;
-const long elevator_positions[] = { 00.0 / elevator_mm_per_revolution * elevator_steps_per_rev, 
-                                    50.0 / elevator_mm_per_revolution * elevator_steps_per_rev, 
-                                    65.0 / elevator_mm_per_revolution * elevator_steps_per_rev, 
-                                    80.0 / elevator_mm_per_revolution * elevator_steps_per_rev, 
-                                    95.0 / elevator_mm_per_revolution * elevator_steps_per_rev};
-const long rotator_quarter_turn = rotator_steps_per_rev / 4;
-const long rotator_half_turn =    rotator_steps_per_rev / 2;
-const long flipper_opposing_position = flipper_steps_per_rev / 4;
+  const uint8_t elevator_pinion_num_teeth = 24;
+  const double elevator_mm_per_revolution = 79.79664;
+  const long elevator_positions[] = { 00.0 / elevator_mm_per_revolution * elevator_steps_per_rev, 
+                                      50.0 / elevator_mm_per_revolution * elevator_steps_per_rev, 
+                                      65.0 / elevator_mm_per_revolution * elevator_steps_per_rev, 
+                                      80.0 / elevator_mm_per_revolution * elevator_steps_per_rev, 
+                                      95.0 / elevator_mm_per_revolution * elevator_steps_per_rev};
+
+  const long rotator_quarter_turn = rotator_steps_per_rev / 4;
+  const long rotator_half_turn =    rotator_steps_per_rev / 2;
+
+  const long flipper_opposing_position = flipper_steps_per_rev / 4;
+#endif
 
 // Robot State Descriptors
 const uint8_t HEIGHT_FLIP = 0; // Elevator fully lowered, cube can flip
@@ -172,38 +179,37 @@ uint8_t height = 0;
 uint8_t orientation = ORIENT_UF;
 bool flipper_position = 0; //0 is the starting config, 1 is the opposite config
 
-// the setup function runs once when you press reset or power the board
-const bool SERIAL_USB_COMMS = true; // make this true to use the external computer system, false to use the arduino serial monitor
-const bool SOLVE_MODE = true; // make this true to run the primary solve sequence
 void setup() {
   // initialize digital pin LED_BUILTIN as an output.
   Serial.begin(115200);
-  delay(10);
+  delay(1);
 
-  elevator.setEnablePin(ELEVATOR_ENA_PIN);
-  elevator.setPinsInverted(true, false, true);
-  elevator.enableOutputs();
-  rotator.setEnablePin(ROTATOR_ENA_PIN);
-  rotator.setPinsInverted(false, false, true);
-  rotator.enableOutputs();
-  flipper.setEnablePin(FLIPPER_ENA_PIN);
-  flipper.setPinsInverted(true, false, true);
-  flipper.enableOutputs();
+  #ifdef USING_HARDWARE //init steppers and apply settings
+    elevator.setEnablePin(ELEVATOR_ENA_PIN);
+    elevator.setPinsInverted(true, false, true);
+    elevator.enableOutputs();
+    rotator.setEnablePin(ROTATOR_ENA_PIN);
+    rotator.setPinsInverted(false, false, true);
+    rotator.enableOutputs();
+    flipper.setEnablePin(FLIPPER_ENA_PIN);
+    flipper.setPinsInverted(true, false, true);
+    flipper.enableOutputs();
 
-  elevator.setMaxSpeed(elevator_steps_per_rev);
-  elevator.setAcceleration(elevator_steps_per_rev * 100);
-  rotator.setMaxSpeed(rotator_steps_per_rev);
-  rotator.setAcceleration(rotator_steps_per_rev * 100);
-  flipper.setMaxSpeed(flipper_steps_per_rev);
-  flipper.setAcceleration(flipper_steps_per_rev * 100);
+    elevator.setMaxSpeed(elevator_steps_per_rev);
+    elevator.setAcceleration(elevator_steps_per_rev * 100);
+    rotator.setMaxSpeed(rotator_steps_per_rev);
+    rotator.setAcceleration(rotator_steps_per_rev * 100);
+    flipper.setMaxSpeed(flipper_steps_per_rev);
+    flipper.setAcceleration(flipper_steps_per_rev * 100);
+  #endif
 
 
-  delay(800);
+  delay(1000);
   const String startMessage = "Arduino Start Message";
-  if(SERIAL_USB_COMMS){
+  #ifdef USING_SERIAL
     serialSend(startMessage);
     delay(10);
-  }
+  #endif
 }
 
 void loop(){
@@ -221,38 +227,44 @@ void messageRecieved(){
 
   //DO STUFF WITH data
   // serialSend(data, numBytes);
-  if(SOLVE_MODE){
-    for(uint8_t move : data){
-      uint8_t upwardFaceXorMove = orientation >> FACE_DESCRIPTOR_BITLENGTH ^ move;
+  #ifdef SOLVE_MODE //execute primary solve sequence
+    executeSolveSequence(data, numBytes);
+  #endif
+}
+
+#ifdef SOLVE_MODE
+  void executeSolveSequence(uint8_t *moves, uint8_t numMoves){
+    for(uint8_t i = 0; i < numMoves; i++){
+      uint8_t upwardFaceXorMove = orientation >> FACE_DESCRIPTOR_BITLENGTH ^ moves[i];
       if(upwardFaceXorMove & FACE_TO_AXIS_BITMASK){// if the primary axis is not the target axis
-        if((orientation ^ move) & FACE_TO_AXIS_BITMASK){// if the secondary axis is not the target axis
-          executeMoveTertiaryAxisIsTarget(move);
+        if((orientation ^ moves[i]) & FACE_TO_AXIS_BITMASK){// if the secondary axis is not the target axis
+          executeMoveTertiaryAxisIsTarget(moves[i]);
         }else{// if the secondary axis is the target axis
-          executeMoveSecondaryAxisIsTarget(move);
+          executeMoveSecondaryAxisIsTarget(moves[i]);
         }
       }else{ //if the primary axis is already the target axis
-        executeMovePrimaryAxisIsTarget(move, upwardFaceXorMove & FACE_TO_PYSY_BITMASK);
+        executeMovePrimaryAxisIsTarget(moves[i], upwardFaceXorMove & FACE_TO_PYSY_BITMASK);
       }
     }
   }
-}
-void executeMovePrimaryAxisIsTarget(uint8_t move, uint8_t isPrimaryAxisInverted){
-  setHeight(move & MOVE_DEPTH_BITMASK ? 2 : isPrimaryAxisInverted / 2 + 1);
-  rotate(move, isPrimaryAxisInverted);
-}
-void executeMoveSecondaryAxisIsTarget(uint8_t move){
-  setHeight(HEIGHT_FLIP);
-  flip();
+  void executeMovePrimaryAxisIsTarget(uint8_t move, uint8_t isPrimaryAxisInverted){
+    setHeight(move & MOVE_DEPTH_BITMASK ? 2 : isPrimaryAxisInverted / 2 + 1);
+    rotate(move, isPrimaryAxisInverted);
+  }
+  void executeMoveSecondaryAxisIsTarget(uint8_t move){
+    setHeight(HEIGHT_FLIP);
+    flip();
 
-  executeMovePrimaryAxisIsTarget(move, (orientation >> FACE_DESCRIPTOR_BITLENGTH ^ move) & FACE_TO_PYSY_BITMASK);
-}
-void executeMoveTertiaryAxisIsTarget(uint8_t move){
-  setHeight(HEIGHT_DEPTH4);
+    executeMovePrimaryAxisIsTarget(move, (orientation >> FACE_DESCRIPTOR_BITLENGTH ^ move) & FACE_TO_PYSY_BITMASK);
+  }
+  void executeMoveTertiaryAxisIsTarget(uint8_t move){
+    setHeight(HEIGHT_DEPTH4);
 
-  rotate((((((orientation >> 2) ^ (orientation >> 1)) & ~(orientation << 1)) ^ (orientation << 2) ^ orientation ^ (orientation >> 1) ^ (orientation >> 3) ^ move) & FACE_TO_PYSY_BITMASK) << 2, 0);
+    rotate((((((orientation >> 2) ^ (orientation >> 1)) & ~(orientation << 1)) ^ (orientation << 2) ^ orientation ^ (orientation >> 1) ^ (orientation >> 3) ^ move) & FACE_TO_PYSY_BITMASK) << 2, 0);
 
-  executeMoveSecondaryAxisIsTarget(move);
-}
+    executeMoveSecondaryAxisIsTarget(move);
+  }
+#endif
 
 
 
@@ -270,7 +282,7 @@ void executeMoveTertiaryAxisIsTarget(uint8_t move){
 // isPrimaryAxisInverted = (((orientation >> FACE_DESCRIPTOR_BITLENGTH) ^ rotation) & FACE_TO_PYSY_BITMASK)
 void rotate(uint8_t rotation, uint8_t isPrimaryAxisInverted){
   #ifdef DEBUG
-  uint8_t startOrientation = orientation;
+    uint8_t startOrientation = orientation;
   #endif
 
   if(height == HEIGHT_DEPTH4 || isPrimaryAxisInverted){ // if the whole cube is being rotated, or if the intended turn face is opposite from the currently upward facing face, then the orientation is changing
@@ -297,16 +309,18 @@ void rotate(uint8_t rotation, uint8_t isPrimaryAxisInverted){
     }
   }
 
-  rotator.move((((rotation >> 4) & 1) * 2 - 1) * ((rotation >> 5) + 1) * rotator_quarter_turn);
-  rotator.runToPosition();
+  #ifdef USING_HARDWARE
+    rotator.move((((rotation >> 4) & 1) * 2 - 1) * ((rotation >> 5) + 1) * rotator_quarter_turn);
+    rotator.runToPosition();
+  #endif
 
   #ifdef DEBUG
-  serialSendDebug("ROTATE (depth = " + String(height) + ((rotation & MOVE_MAG_BITMASK) == MOVE_MAG_BITMASK ? ", HALF " : ", QUARTER ") + ((rotation & MOVE_DIR_BITMASK) == MOVE_DIR_BITMASK ? "CCW " : "CW ") + (rotation & FACE_TO_PYSY_BITMASK ? "SECONDARY)" : "PRIMARY)"), startOrientation);
+    serialSendDebug("ROTATE (depth = " + String(height) + ((rotation & MOVE_MAG_BITMASK) == MOVE_MAG_BITMASK ? ", HALF " : ", QUARTER ") + ((rotation & MOVE_DIR_BITMASK) == MOVE_DIR_BITMASK ? "CCW " : "CW ") + (rotation & FACE_TO_PYSY_BITMASK ? "SECONDARY)" : "PRIMARY)"), startOrientation);
   #endif
 }
 void flip(){
   #ifdef DEBUG
-  uint8_t startOrientation = orientation;
+    uint8_t startOrientation = orientation;
   #endif
 
   if(height == 0){ //front and up facing sides swap
@@ -316,22 +330,28 @@ void flip(){
   }
 
   flipper_position = !flipper_position;
-  flipper.runToNewPosition(flipper_opposing_position * flipper_position);
+
+  #ifdef USING_HARDWARE
+    flipper.runToNewPosition(flipper_opposing_position * flipper_position);
+  #endif
 
   #ifdef DEBUG
-  serialSendDebug("FLIP", startOrientation);
+    serialSendDebug("FLIP", startOrientation);
   #endif
 }
 void setHeight(uint8_t newHeight){
   #ifdef DEBUG
-  uint8_t startOrientation = orientation;
+    uint8_t startOrientation = orientation;
   #endif
 
   height = newHeight;
-  elevator.runToNewPosition(elevator_positions[height]);
+
+  #ifdef USING_HARDWARE
+    elevator.runToNewPosition(elevator_positions[height]);
+  #endif
 
   #ifdef DEBUG
-  serialSendDebug("HEIGHT: " + String(height), startOrientation);
+    serialSendDebug("HEIGHT: " + String(height), startOrientation);
   #endif
 }
 
@@ -348,10 +368,10 @@ void serialSend(uint8_t &data){
   Serial.write(data);
 }
 #ifdef DEBUG
-void serialSendDebug(const String &str, uint8_t &startOrientation){
-  serialSend("DEBUG :\t" + String(startOrientation) + "\t->\t" + String(orientation) + "\t: " + str);
-}
-void serialSendDebug(const String &str){
-  serialSend("DEBUG : " + str);
-}
+  void serialSendDebug(const String &str, uint8_t &startOrientation){
+    serialSend("DEBUG :\t" + String(startOrientation) + "\t->\t" + String(orientation) + "\t: " + str);
+  }
+  void serialSendDebug(const String &str){
+    serialSend("DEBUG : " + str);
+  }
 #endif
