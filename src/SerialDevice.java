@@ -3,6 +3,7 @@ import com.fazecast.jSerialComm.*;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.concurrent.TimeoutException;
 
 public abstract class SerialDevice {
 
@@ -12,7 +13,9 @@ public abstract class SerialDevice {
 	private volatile byte[] buffer = null;
 	private volatile int dataIndex = 0;
 
-	public SerialDevice(String portDescriptor, int baud) throws IOException{
+	private boolean waitingForResetFlag = false;
+
+	public SerialDevice(String portDescriptor, int baud) throws IOException, TimeoutException{
 		port = SerialPort.getCommPort(portDescriptor);
 
 		port.setComPortParameters(baud, 8, 1, 0);
@@ -29,10 +32,25 @@ public abstract class SerialDevice {
 			}
 
 			private void processData(byte[] data){
+				if(data.length == 0) return;
+
 				int i = 0;
-				if(buffer == null) buffer = new byte[data[i++]];
+				if(buffer == null){
+					if(data[i] == -1){
+						resetDevice();
+						processData(Arrays.copyOfRange(data, 1, data.length));
+						return;
+					}
+
+					buffer = new byte[data[i++]];
+				}
 
 				while(i < data.length && dataIndex < buffer.length){
+					if(data[i] == -1){
+						resetDevice();
+						processData(Arrays.copyOfRange(data, i+1, data.length));
+						return;
+					}
 					buffer[dataIndex++] = data[i++];
 				}
 
@@ -45,12 +63,36 @@ public abstract class SerialDevice {
 						processData(Arrays.copyOfRange(data, i, data.length));
 				}
 			}
+
+			private void resetDevice(){
+				receivedMessages = new ArrayList<>();
+				dataIndex = 0;
+				buffer = null;
+				waitingForResetFlag = false;
+			}
 		});
 
-		if(!port.openPort(10)){ //this line resets the arduino
+		if(!port.openPort(1)){ //this line resets the arduino
 			throw new IOException("Serial Port " + portDescriptor + " not Available.");
 		}
 
+		waitForReset(10);
+	}
+
+	public void waitForReset(double seconds) throws TimeoutException{
+		waitingForResetFlag = true;
+
+		for (int i = 0; waitingForResetFlag; i++){
+			if(i >= seconds * 10){
+				throw new TimeoutException("Reset did not occur in the given waiting period");
+			}
+
+			try {
+				Thread.sleep(100);
+			} catch (InterruptedException e) {
+				e.printStackTrace();
+			}
+		}
 	}
 
 	public boolean isPortOpen(){

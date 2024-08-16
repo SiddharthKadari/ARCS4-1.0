@@ -36,7 +36,7 @@ public class Main {
 		System.setProperty("org.bytedeco.openblas.load", "mkl");
 	}
 
-	public static void main(String[] args) throws TimeoutException {
+	public static void main(String[] args) throws TimeoutException, IOException {
 		printStatusUpdate("PROGRAM START");
 
 		SerialDevice arduino;
@@ -44,38 +44,24 @@ public class Main {
 
 		if(USING_SOLVER){
 			printStatusUpdate(">>> INITIALIZE SOLVER");
+
 			//Initializing .data files
 			initializeSolveData();
+
 			printStatusUpdate("<<< SOLVER INITIALIZED");;
 		}
 
 		if(USING_ARDUINO){
 			printStatusUpdate(">>> CONNECT ARDUINO");
-			System.out.println("Connecting to Arduino...");
 
-			try {
-				//use {cd /dev} in terminal to get list of all ports
-				arduino = new SerialDevice("tty.usbmodem1101", 115200){
-					@Override
-					public void messageReceived(byte[] msg){
-					}
-				};
-			} catch (IOException e) {
-				e.printStackTrace();
-				return;
-			}
-
-			for(int i = 0; arduino.numMessagesReceived() == 0; i++){
-				delay(100);
-	
-				//10 second timeout
-				if(i == 10*10){
-					throw new TimeoutException("Arduino failed to connect, try again");
+			//use {cd /dev} in terminal to get list of all ports
+			arduino = new SerialDevice("tty.usbmodem1101", 115200){
+				@Override
+				public void messageReceived(byte[] msg){
 				}
-			}
+			};
 
 			printStatusUpdate("<<< ARDUINO CONNECTED");
-			delay(1000);
 		}
 
 		if(USING_WEBCAM){
@@ -93,12 +79,10 @@ public class Main {
 				return;
 			}
 
-			delay(100);
-
 			printStatusUpdate("<<< WEBCAM CONNECTED");
 		}
 	
-		printStatusUpdate(" ## SYSTEM INIT COMPLETE ##");
+		printStatusUpdate("SYSTEM INIT COMPLETE");
 
 		if(TESTING_SOLVER){
 			Random r = new Random(System.nanoTime());
@@ -179,6 +163,8 @@ public class Main {
 
 
 		if(TESTING_SOLVER_ARDUINO){
+			printStatusUpdate("TESTING SOLVER & ARDUINO");
+
 			Random r = new Random(System.nanoTime());
 			FullCube cube = new FullCube();
 			for(int i = 0; i < 4; i++){
@@ -203,8 +189,10 @@ public class Main {
 			arduino.send(sol);
 		}
 
+
+		delay(1000);
+
 		printStatusUpdate("PROGRAM CLEANUP");
-		delay(10);
 		if(USING_ARDUINO){
 			arduino.printAllMessagesDebug();
 			arduino.closeDevice();

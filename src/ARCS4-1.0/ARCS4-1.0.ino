@@ -2,7 +2,7 @@
 #include "AccelStepper.h"
 
 #define DEBUG
-#define USING_HARDWARE
+// #define USING_HARDWARE
 #define USING_SERIAL
 #define SOLVE_MODE
 
@@ -182,7 +182,6 @@ bool flipper_position = 0; //0 is the starting config, 1 is the opposite config
 void setup() {
   // initialize digital pin LED_BUILTIN as an output.
   Serial.begin(115200);
-  delay(1);
 
   #ifdef USING_HARDWARE //init steppers and apply settings
     elevator.setEnablePin(ELEVATOR_ENA_PIN);
@@ -203,12 +202,8 @@ void setup() {
     flipper.setAcceleration(flipper_steps_per_rev * 100);
   #endif
 
-
-  delay(1000);
-  const String startMessage = "Arduino Start Message";
   #ifdef USING_SERIAL
-    serialSend(startMessage);
-    delay(10);
+    connectExternalComputerSerial();
   #endif
 }
 
@@ -355,6 +350,13 @@ void setHeight(uint8_t newHeight){
   #endif
 }
 
+#ifdef USING_SERIAL
+  const String startMessage = "Arduino Start Message";
+  #define RESET_CODE -1
+  void connectExternalComputerSerial(){
+    Serial.write(RESET_CODE);
+  }
+#endif
 void serialSend(const String &str){
   Serial.write(str.length());
   Serial.print(str);
