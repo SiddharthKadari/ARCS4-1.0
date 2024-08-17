@@ -2,7 +2,7 @@
 #include "AccelStepper.h"
 
 #define DEBUG
-// #define USING_HARDWARE
+#define USING_HARDWARE
 #define USING_SERIAL
 #define SOLVE_MODE
 
@@ -356,24 +356,30 @@ void setHeight(uint8_t newHeight){
   void connectExternalComputerSerial(){
     Serial.write(RESET_CODE);
   }
+
+  void serialSend(const String &str){
+    Serial.write(str.length());
+    Serial.print(str);
+  }
+  void serialSend(uint8_t *data, uint8_t &length){
+    Serial.write(length);
+    Serial.write(data, length);
+  }
+  void serialSend(uint8_t &data){
+    Serial.write(1);
+    Serial.write(data);
+  }
 #endif
-void serialSend(const String &str){
-  Serial.write(str.length());
-  Serial.print(str);
-}
-void serialSend(uint8_t *data, uint8_t &length){
-  Serial.write(length);
-  Serial.write(data, length);
-}
-void serialSend(uint8_t &data){
-  Serial.write(1);
-  Serial.write(data);
-}
+
 #ifdef DEBUG
   void serialSendDebug(const String &str, uint8_t &startOrientation){
-    serialSend("DEBUG :\t" + String(startOrientation) + "\t->\t" + String(orientation) + "\t: " + str);
+    #ifdef USING_SERIAL
+      serialSend("DEBUG :\t" + String(startOrientation) + "\t->\t" + String(orientation) + "\t: " + str);
+    #endif
   }
   void serialSendDebug(const String &str){
-    serialSend("DEBUG : " + str);
+    #ifdef USING_SERIAL
+      serialSend("DEBUG : " + str);
+    #endif
   }
 #endif
